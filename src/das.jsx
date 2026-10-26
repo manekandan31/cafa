@@ -2537,6 +2537,7 @@ function Glossary({ go, sub, currentUser }) {
   const [vq, setVq] = useState(""), [sq, setSq] = useState("");
   const [vPage, setVPage] = useState(1), [sPage, setSPage] = useState(1);
   const [editModal, setEditModal] = useState(null);
+  const [stockFilter, setStockFilter] = useState("all"); // "all" | "low" | "out"
 
   const PAGE_SIZE = 5;
 
@@ -2547,7 +2548,16 @@ function Glossary({ go, sub, currentUser }) {
   const currentVPage = Math.min(vPage, vTotalPages);
   const pagedVen = filteredVen.slice((currentVPage - 1) * PAGE_SIZE, currentVPage * PAGE_SIZE);
 
-  const filteredStk = match(stk, sq);
+  const filteredStk = stk
+    .map((r, i) => [r, i])
+    .filter(([r]) => {
+      const qty = Number(r[3]) || 0;
+      if (stockFilter === "low") return qty > 0 && qty <= 12;
+      if (stockFilter === "out") return qty === 0;
+      return true;
+    })
+    .filter(([r]) => !sq || r.join(" ").toLowerCase().includes(sq.toLowerCase()));
+
   const sTotalPages = Math.max(1, Math.ceil(filteredStk.length / PAGE_SIZE));
   const currentSPage = Math.min(sPage, sTotalPages);
   const pagedStk = filteredStk.slice((currentSPage - 1) * PAGE_SIZE, currentSPage * PAGE_SIZE);
@@ -2816,16 +2826,73 @@ function Glossary({ go, sub, currentUser }) {
       ) : (
         <>
           <div className="kpis">
-            <div className="k1"><span className="ic">📦</span><span><small>Total Items</small><b>{totalStockCount}</b></span></div>
-            <div className="k2"><span className="ic b">📦</span><span><small>Total Stock Value</small><b>{inr(totalStockValue)}</b></span></div>
-            <div className="k3"><span className="ic" style={{ background: "#ffe7b3", color: "#c77a00" }}>⚠</span><span><small>Low Stock Items</small><b>{lowStockCount}</b></span></div>
-            <div className="k4"><span className="ic" style={{ background: "#fbc9cc", color: "#c4161c" }}>📦</span><span><small>Out of Stock Items</small><b>{outOfStockCount}</b></span></div>
+            <div
+              className={`k1 ${stockFilter === "all" ? "active-kpi" : ""}`}
+              onClick={() => { setStockFilter("all"); setSPage(1); }}
+              style={{ cursor: "pointer", transition: "all 0.15s ease", border: stockFilter === "all" ? "2px solid #2e9e4a" : "1px solid #a9d8b5", boxShadow: stockFilter === "all" ? "0 0 0 3px rgba(46,158,74,0.2)" : "none" }}
+              title="Click to show All items"
+            >
+              <span className="ic">📦</span>
+              <span><small>Total Items</small><b>{totalStockCount}</b></span>
+            </div>
+            <div
+              className="k2"
+              onClick={() => { setStockFilter("all"); setSPage(1); }}
+              style={{ cursor: "pointer" }}
+              title="Total Inventory Value"
+            >
+              <span className="ic b">💰</span>
+              <span><small>Total Stock Value</small><b>{inr(totalStockValue)}</b></span>
+            </div>
+            <div
+              className={`k3 ${stockFilter === "low" ? "active-kpi" : ""}`}
+              onClick={() => { setStockFilter(f => f === "low" ? "all" : "low"); setSPage(1); }}
+              style={{ cursor: "pointer", transition: "all 0.15s ease", border: stockFilter === "low" ? "2.5px solid #d97706" : "1px solid #f0d196", boxShadow: stockFilter === "low" ? "0 0 0 4px rgba(217,119,6,0.25)" : "none", transform: stockFilter === "low" ? "scale(1.02)" : "none" }}
+              title="Click to filter Low Stock items (qty ≤ 12)"
+            >
+              <span className="ic" style={{ background: "#ffe7b3", color: "#c77a00" }}>⚠️</span>
+              <span>
+                <small style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  Low Stock Items {stockFilter === "low" && <span style={{ background: "#d97706", color: "#fff", fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>ACTIVE</span>}
+                </small>
+                <b>{lowStockCount}</b>
+              </span>
+            </div>
+            <div
+              className={`k4 ${stockFilter === "out" ? "active-kpi" : ""}`}
+              onClick={() => { setStockFilter(f => f === "out" ? "all" : "out"); setSPage(1); }}
+              style={{ cursor: "pointer", transition: "all 0.15s ease", border: stockFilter === "out" ? "2.5px solid #dc2626" : "1px solid #f0a9ad", boxShadow: stockFilter === "out" ? "0 0 0 4px rgba(220,38,38,0.25)" : "none", transform: stockFilter === "out" ? "scale(1.02)" : "none" }}
+              title="Click to filter Out of Stock items (qty = 0)"
+            >
+              <span className="ic" style={{ background: "#fbc9cc", color: "#c4161c" }}>🚨</span>
+              <span>
+                <small style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  Out of Stock Items {stockFilter === "out" && <span style={{ background: "#dc2626", color: "#fff", fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>ACTIVE</span>}
+                </small>
+                <b>{outOfStockCount}</b>
+              </span>
+            </div>
           </div>
 
           <div className="grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
             <div className="card">
               <div className="ch">
-                📦 Stock Items
+                <span>
+                  📦 Stock Items
+                  {stockFilter !== "all" && (
+                    <span style={{ marginLeft: 8, fontSize: 11, background: stockFilter === "out" ? "#fef2f2" : "#fffbeb", color: stockFilter === "out" ? "#dc2626" : "#b45309", border: `1px solid ${stockFilter === "out" ? "#fca5a5" : "#fde68a"}`, padding: "2px 8px", borderRadius: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Filtered: {stockFilter === "out" ? "🚨 Out of Stock" : "⚠️ Low Stock"} ({filteredStk.length})
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setStockFilter("all"); setSPage(1); }}
+                        style={{ border: "none", background: "none", color: "inherit", cursor: "pointer", fontWeight: 800, padding: 0, marginLeft: 2 }}
+                        title="Clear filter"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                </span>
                 <span>
                   <input
                     className="srch"
