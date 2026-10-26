@@ -2087,63 +2087,435 @@ function Review({ go, sub }) {
   const [cal, setCal] = useState({ y: 2026, m: 9, d: 14 });
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
-  const pick = (d) => { setCal({ ...cal, d }); setPage(1); setQ(""); go("/review/day"); };
-  const month = (n) => { let m = cal.m + n, y = cal.y; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCal({ y, m, d: 1 }); };
-  const calCard = <div className="card"><div className="ch">📅 Specific Day Sales</div><div className="cb"><Calendar {...cal} onPick={pick} onMonth={month} /></div></div>;
-  const todayCard = <div className="card g"><div className="ch">📈 Today's Sales Summary</div><div className="cb"><KP rev={4150} n={73} /><div className="hl">Hourly Sales</div><Chart v={hourly("today")} />
-    <div className="inc"><span className="ic">💰</span><span><small>Total Income Since Sales Started</small><b>₹{TOTAL_INCOME.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b><em>{SALES_START} – Today</em></span></div></div></div>;
+  const pickMonth = (e) => { setCal({ ...cal, m: parseInt(e.target.value), d: 1 }); setPage(1); setQ(""); };
+  const pickDate = (e) => { setCal({ ...cal, d: parseInt(e.target.value) }); setPage(1); setQ(""); };
+  const daysInMonth = new Date(cal.y, cal.m + 1, 0).getDate();
+  const PAY_MODES = ["GPay", "Cash", "Card"];
+  const payBadge = (idx) => {
+    const mode = PAY_MODES[idx % 3];
+    const cfg = mode === "Cash" ? { bg: "#d9f2df", color: "#1b7a3a", icon: "💵" } : mode === "GPay" ? { bg: "#d9f2df", color: "#1b7a3a", icon: "📱" } : { bg: "#e8e0f7", color: "#6d28d9", icon: "💳" };
+    return <span className="pay-badge" style={{ background: cfg.bg, color: cfg.color }}><span>{cfg.icon}</span> {mode}</span>;
+  };
+
+  const calCard = (
+    <div className="card">
+      <div className="ch">📅 Specific Date & Month</div>
+      <div className="cb">
+        <div className="dm-selectors">
+          <div className="dm-group">
+            <label>📅 SELECT MONTH</label>
+            <select value={cal.m} onChange={pickMonth}>
+              {MF.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
+            </select>
+          </div>
+          <div className="dm-group">
+            <label>📅 SELECT DATE</label>
+            <select value={cal.d} onChange={pickDate}>
+              {Array.from({ length: daysInMonth }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   const detail = (
     <div className="card"><div className="ch">📋 Sales Detail Report</div>
-      <div className="tw"><table><thead><tr><th>#</th><th>Time</th><th>Payment Mode</th><th className="a">Amount</th></tr></thead>
-        <tbody>{TODAY.map((x, i) => {
-          const payMode = i % 2 === 0 ? "Cash" : "GPay";
-          return (
+      <div className="tw"><table><thead><tr><th>#</th><th>Time</th><th>Payment Type</th><th className="a">Amount</th></tr></thead>
+        <tbody>{TODAY.map((x, i) => (
             <tr key={i}>
               <td>{i + 1}</td>
               <td>{TT[i]}</td>
-              <td>
-                <span style={{ fontWeight: 700, color: payMode === "Cash" ? "#16a34a" : "#7c3aed", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <span>{payMode === "Cash" ? "💵" : "📱"}</span>
-                  <span>{payMode}</span>
-                </span>
-              </td>
+              <td>{payBadge(i)}</td>
               <td className="a">{money(x[0])}</td>
             </tr>
-          );
-        })}</tbody></table></div></div>
+        ))}</tbody></table></div></div>
   );
   const dl = `${cal.d} ${MF[cal.m]} ${cal.y}`;
-  const all = txs(cal.m, cal.d, 75).filter((x) => !q || (x.id + x.i + x.t).toLowerCase().includes(q.toLowerCase()));
+  const all = txs(cal.m, cal.d, 75).filter((x) => !q || (x.id + x.i + x.t + PAY_MODES[parseInt(x.id.replace(/\D/g,"")) % 3]).toLowerCase().includes(q.toLowerCase()));
   const pages = Math.max(1, Math.ceil(all.length / 15)), pg = Math.min(page, pages), [rev, n] = [dayRev(cal.m, cal.d), dayItems(cal.m, cal.d)], mt = monthTotal(cal.y, cal.m);
+
+  /* --- Profit & Expense Data --- */
+  const baseTodaySales = 4150;
+  const [expList, setExpList] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cafe_today_expenses");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("cafe_today_expenses", JSON.stringify(expList));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [expList]);
+
+  const getDayExpenses = (m, d) => {
+    const isToday = (m === 9 && d === 14) || (m === new Date().getMonth() && d === new Date().getDate());
+    if (isToday && expList && expList.length > 0) return expList;
+    const seed = (m * 31 + d);
+    const vendorAmts = [450, 680, 520, 890, 350, 750, 620];
+    const salaryAmts = [600, 800, 500, 750, 900];
+    const otherAmts = [150, 280, 200, 350, 180, 240];
+    const vendorReasons = [
+      "DairyLand fresh milk & cream",
+      "GrainMart Arabica beans & syrups",
+      "FreshFoods vegetables & fruits",
+      "Bakery supplies & butter"
+    ];
+    const salaryReasons = [
+      "Barista & Kitchen Staff Daily Wage",
+      "Supplier Delivery & Helper Salary",
+      "Service Crew Day Shift Stipend"
+    ];
+    const otherReasons = [
+      "Electricity & Water utility refill",
+      "Bio-straws & paper cup packaging",
+      "Ice bags & kitchen consumables",
+      "Gas cylinder replacement"
+    ];
+    return [
+      { id: "e1", cat: "Vendor", mode: seed % 2 === 0 ? "Cash" : "GPay", amount: vendorAmts[seed % vendorAmts.length], reason: vendorReasons[seed % vendorReasons.length], time: "09:30 AM" },
+      { id: "e2", cat: "Supplier Salary", mode: seed % 3 === 0 ? "Cash" : "GPay", amount: salaryAmts[(seed + 1) % salaryAmts.length], reason: salaryReasons[(seed + 1) % salaryReasons.length], time: "01:15 PM" },
+      { id: "e3", cat: "Other", mode: seed % 2 === 1 ? "Cash" : "GPay", amount: otherAmts[(seed + 2) % otherAmts.length], reason: otherReasons[(seed + 2) % otherReasons.length], time: "04:45 PM" }
+    ];
+  };
+  const selectedDayExpenses = getDayExpenses(cal.m, cal.d);
+  const dayExpTotal = selectedDayExpenses.reduce((s, x) => s + x.amount, 0);
+  const dayNetProfit = rev - dayExpTotal;
+
+  const [expCat, setExpCat] = useState("Vendor");
+  const [expMode, setExpMode] = useState("Cash");
+  const [expAmt, setExpAmt] = useState("");
+  const [expReason, setExpReason] = useState("");
+  const addExpense = () => {
+    const amt = parseFloat(expAmt);
+    if (!amt || amt <= 0) return;
+    if (expCat === "Other" && !expReason.trim()) return;
+    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, reason: expCat === "Other" ? expReason.trim() : "", time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    setExpList(prev => [entry, ...prev]);
+    setExpAmt(""); setExpReason("");
+  };
+  const removeExpense = (id) => setExpList(prev => prev.filter(e => e.id !== id));
+  const totalExpense = expList.reduce((s, x) => s + x.amount, 0);
+  const actualProfit = baseTodaySales - totalExpense;
+
+  const salesCash = 2350;
+  const salesGPay = 1800;
+  const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
+  const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
+  const netCash = salesCash - expenseCash;
+  const netGPay = salesGPay - expenseGPay;
+
+  const todayCard = (
+    <div className="card g">
+      <div className="ch">📈 Today's Sales Summary</div>
+      <div className="cb">
+        <KP rev={actualProfit} n={73} />
+        {totalExpense > 0 && (
+          <div style={{ margin: "-4px 0 12px 0", fontSize: 12, color: "#475569", display: "flex", gap: 14, background: "#f8fafc", padding: "8px 14px", borderRadius: 8, border: "1px solid #e2e8f0", alignItems: "center", flexWrap: "wrap" }}>
+            <span>Base Sales: <b style={{ color: "#0d8a2f" }}>{money(baseTodaySales)}</b></span>
+            <span>Expenses Deducted: <b style={{ color: "#c4161c" }}>- {money(totalExpense)}</b></span>
+            <span>Updated Profit: <b style={{ color: actualProfit >= 0 ? "#0d8a2f" : "#c4161c" }}>{money(actualProfit)}</b></span>
+          </div>
+        )}
+        <div className="hl">Hourly Sales</div>
+        <Chart v={hourly("today")} />
+        <div className="inc">
+          <span className="ic">💰</span>
+          <span>
+            <small>Total Income Since Sales Started</small>
+            <b>₹{(TOTAL_INCOME - totalExpense).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
+            <em>{SALES_START} – Today</em>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
       {!sub && (
         <div className="home">
           <button className="big" onClick={() => go("/review/today")}><i>📈</i>TODAY'S SALES</button>
-          <button className="big" onClick={() => go("/review/day")}><i>📅</i>SPECIFIC DAY SALES</button>
+          <button className="big" onClick={() => go("/review/day")}><i>📅</i>SPECIFIC DATE AND MONTH</button>
+          <button className="big" onClick={() => go("/review/profitexpense")}><i>💰</i>PROFIT & EXPENSE</button>
         </div>
       )}
       {sub === "today" && <div style={{ display: "grid", gap: 14 }}>{todayCard}{detail}</div>}
+      {sub === "profitexpense" && (
+        <div className="grid g5">
+          {/* LEFT: Today's Profit & Cash/GPay Breakdown */}
+          <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <div className="card g">
+              <div className="ch">💰 Today's Profit</div>
+              <div className="cb">
+                {/* Hero Profit Card */}
+                <div className={`pe-hero-profit ${actualProfit < 0 ? "loss" : ""}`}>
+                  <div className="pe-profit-amount">
+                    <span className="pe-label">{actualProfit >= 0 ? "Today's Profit" : "Today's Loss"}</span>
+                    <span className={`pe-value ${actualProfit < 0 ? "expense" : "profit"}`}>{inr(actualProfit)}</span>
+                    <small style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                      {actualProfit >= 0 ? "✅ Automatically updated after deducting expenses" : "⚠️ Expenses exceed total sales"}
+                    </small>
+                  </div>
+                </div>
+
+                {/* 2 KPIs side by side: Total Sales & Total Expenses */}
+                <div className="kpis" style={{ gridTemplateColumns: "1fr 1fr", gap: 10, margin: "14px 0" }}>
+                  <div className="k1">
+                    <span className="ic" style={{ background: "#d6eedb" }}>🛍</span>
+                    <span><small>Total Sales</small><b>{inr(baseTodaySales)}</b></span>
+                  </div>
+                  <div className="k4">
+                    <span className="ic" style={{ background: "#fde0e0" }}>📉</span>
+                    <span><small>Total Expenses</small><b>{inr(totalExpense)}</b></span>
+                  </div>
+                </div>
+
+                {/* Profit Calculation Summary */}
+                <div className="pe-summary" style={{ background: "#f8fafc", padding: "14px 16px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                  <div className="pe-summary-row">
+                    <span>📈 Gross Sales Today</span><b style={{ color: "#0d8a2f" }}>{inr(baseTodaySales)}</b>
+                  </div>
+                  <div className="pe-summary-row">
+                    <span>📉 Less Total Expenses</span><b style={{ color: "#c4161c" }}>- {inr(totalExpense)}</b>
+                  </div>
+                  <div className="pe-summary-divider"></div>
+                  <div className="pe-summary-row total">
+                    <span>{actualProfit >= 0 ? "💰" : "⚠️"} Today's Profit</span>
+                    <b style={{ color: actualProfit >= 0 ? "#0d8a2f" : "#c4161c", fontSize: 22 }}>{inr(actualProfit)}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cash & GPay Settlement Breakdown Card in the empty space */}
+            <div className="card" style={{ borderColor: "#c5d6ea" }}>
+              <div className="ch" style={{ background: "linear-gradient(#1e3a5f, #0d233e)" }}>
+                💳 Cash & GPay Settlement Breakdown
+              </div>
+              <div className="cb">
+                <div className="pe-cash-grid">
+                  {/* Cash Card */}
+                  <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: 10, padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: "#166534" }}>💵 Cash in Hand</span>
+                      <span style={{ fontSize: 10.5, background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: 8, fontWeight: 700 }}>Cash</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Sales Cash:</span>
+                        <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Expenses (Cash):</span>
+                        <b style={{ color: "#c4161c" }}>-{inr(expenseCash)}</b>
+                      </div>
+                      <div style={{ height: 1, background: "#bbf7d0", margin: "2px 0" }} />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontWeight: 700, fontSize: 11.5 }}>Net Cash:</span>
+                        <b style={{ fontSize: 16, color: netCash >= 0 ? "#15803d" : "#c4161c", fontWeight: 800 }}>{inr(netCash)}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GPay Card */}
+                  <div style={{ background: "#faf5ff", border: "1.5px solid #d8b4fe", borderRadius: 10, padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: "#6b21a8" }}>📱 GPay / Online</span>
+                      <span style={{ fontSize: 10.5, background: "#f3e8ff", color: "#7e22ce", padding: "1px 6px", borderRadius: 8, fontWeight: 700 }}>Online</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Sales GPay:</span>
+                        <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Expenses (GPay):</span>
+                        <b style={{ color: "#c4161c" }}>-{inr(expenseGPay)}</b>
+                      </div>
+                      <div style={{ height: 1, background: "#e9d5ff", margin: "2px 0" }} />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontWeight: 700, fontSize: 11.5 }}>Net GPay:</span>
+                        <b style={{ fontSize: 16, color: netGPay >= 0 ? "#7e22ce" : "#c4161c", fontWeight: 800 }}>{inr(netGPay)}</b>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+                  <span style={{ color: "#475569", fontWeight: 600 }}>Total Balance (Cash + GPay):</span>
+                  <b style={{ fontSize: 15, color: actualProfit >= 0 ? "#0d8a2f" : "#c4161c", fontWeight: 800 }}>{inr(actualProfit)}</b>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Expenses - Manual Entry */}
+          <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <div className="card" style={{ borderColor: "#f0a9ad" }}>
+              <div className="ch" style={{ background: "linear-gradient(#e85d68, #c4161c)" }}>📋 Add Expense</div>
+              <div className="cb">
+                {/* Category Selection */}
+                <div className="exp-cat-label">Select Category</div>
+                <div className="exp-cat-btns">
+                  {["Vendor", "Supplier Salary", "Other"].map(c => (
+                    <button key={c} type="button" className={`exp-cat-btn ${expCat === c ? "active" : ""}`} onClick={() => { setExpCat(c); setExpReason(""); }}>
+                      {c === "Vendor" ? "🏪" : c === "Supplier Salary" ? "👨‍💼" : "📝"} {c}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Payment Mode Selection */}
+                <div className="exp-cat-label" style={{ marginTop: 10 }}>Payment Mode (Give in Cash or GPay)</div>
+                <div className="exp-cat-btns">
+                  {["Cash", "GPay"].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`exp-cat-btn ${expMode === m ? "active" : ""}`}
+                      style={expMode === m ? (m === "Cash" ? { borderColor: "#15803d", background: "#f0fdf4", color: "#15803d", fontWeight: 700 } : { borderColor: "#7e22ce", background: "#faf5ff", color: "#7e22ce", fontWeight: 700 }) : {}}
+                      onClick={() => setExpMode(m)}
+                    >
+                      {m === "Cash" ? "💵 Cash" : "📱 GPay"}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Reason input for Other */}
+                {expCat === "Other" && (
+                  <div className="exp-field">
+                    <label>📝 Reason</label>
+                    <input type="text" placeholder="Enter reason for expense..." value={expReason} onChange={(e) => setExpReason(e.target.value)} className="exp-input" />
+                  </div>
+                )}
+                {/* Amount input */}
+                <div className="exp-field">
+                  <label>💰 Amount (₹)</label>
+                  <input type="number" placeholder="Enter amount..." value={expAmt} onChange={(e) => setExpAmt(e.target.value)} className="exp-input" onKeyDown={(e) => e.key === "Enter" && addExpense()} />
+                </div>
+                <button className="exp-add-btn" onClick={addExpense} disabled={!expAmt || (expCat === "Other" && !expReason.trim())}>
+                  ➕ Add Expense
+                </button>
+              </div>
+            </div>
+
+            {/* Expense List */}
+            <div className="card" style={{ borderColor: "#f0a9ad" }}>
+              <div className="ch" style={{ background: "linear-gradient(#e85d68, #c4161c)" }}>📋 Today's Expenses {expList.length > 0 && <span className="exp-count">{expList.length}</span>}</div>
+              <div className="cb">
+                <div className="pe-hero-expense">
+                  <div className="pe-expense-amount">
+                    <span className="pe-label">Total Expenses</span>
+                    <span className="pe-value expense">{inr(totalExpense)}</span>
+                  </div>
+                </div>
+                {expList.length === 0 ? (
+                  <div className="exp-empty">No expenses added yet. Use the form above to add expenses.</div>
+                ) : (
+                  <div className="tw" style={{ maxHeight: 280, marginTop: 10 }}>
+                    <table>
+                      <thead><tr><th>#</th><th>Time</th><th>Category</th><th>Mode</th><th>Reason</th><th className="a">Amount</th><th></th></tr></thead>
+                      <tbody>{expList.map((e, i) => (
+                        <tr key={e.id}>
+                          <td>{i + 1}</td>
+                          <td>{e.time}</td>
+                          <td><span className={`exp-cat-pill ${e.cat === "Vendor" ? "vendor" : e.cat === "Supplier Salary" ? "salary" : "other"}`}>
+                            {e.cat === "Vendor" ? "🏪" : e.cat === "Supplier Salary" ? "👨‍💼" : "📝"} {e.cat}
+                          </span></td>
+                          <td><span className={`exp-mode-pill ${(e.mode || "Cash").toLowerCase()}`}>
+                            {(e.mode || "Cash") === "GPay" ? "📱 GPay" : "💵 Cash"}
+                          </span></td>
+                          <td style={{ color: "#64748b", fontSize: 12 }}>{e.reason || "—"}</td>
+                          <td className="a" style={{ color: "#c4161c", fontWeight: 700 }}>{inr(e.amount)}</td>
+                          <td><button className="exp-del-btn" onClick={() => removeExpense(e.id)} title="Delete">✕</button></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {sub === "day" && <>
         <div className="grid g5">
           <div style={{ display: "grid", gap: 12 }}>{calCard}
             <div className="card g"><div className="cb"><div className="sel-t">Selected Date: {dl}</div><KP rev={rev} n={n} /><div className="hl">Hourly Sales ({dl})</div><Chart v={hourly(cal.d)} />
-              <div className="inc"><span className="ic">🗓</span><span><small>Total Sales in {MN[cal.m]} {cal.y}</small><b>{inr(mt.rev)}</b><em>{mt.items} items sold · {mt.days} sales days</em></span></div></div></div></div>
-          <div className="card"><div className="ch">📋 Sales Detail Report ({dl})<input className="srch" placeholder="🔍 Search transactions..." value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
-            <div className="tw tall"><table><thead><tr><th>#</th><th>Time</th><th>Payment Mode</th><th className="a">Amount</th></tr></thead>
+              <div className="inc"><span className="ic">🗓</span><span><small>Total Sales in {MN[cal.m]} {cal.y}</small><b>{inr(mt.rev)}</b><em>{mt.items} items sold · {mt.days} sales days</em></span></div></div></div>
+
+            {/* Expenses with Reason Card for Selected Date */}
+            <div className="card" style={{ borderColor: "#f0a9ad" }}>
+              <div className="ch" style={{ background: "linear-gradient(#e85d68, #c4161c)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>📋 Expenses with Reason ({dl})</span>
+                <span style={{ fontSize: 11.5, background: "rgba(255,255,255,0.25)", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>
+                  {selectedDayExpenses.length} entries
+                </span>
+              </div>
+              <div className="cb">
+                <div className="pe-cash-grid" style={{ marginBottom: 12 }}>
+                  <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px" }}>
+                    <small style={{ color: "#991b1b", fontWeight: 700, fontSize: 10.5, display: "block" }}>TOTAL EXPENSES</small>
+                    <b style={{ color: "#c4161c", fontSize: 17 }}>- {inr(dayExpTotal)}</b>
+                  </div>
+                  <div style={{ background: dayNetProfit >= 0 ? "#f0fdf4" : "#fef2f2", border: `1px solid ${dayNetProfit >= 0 ? "#86efac" : "#fca5a5"}`, borderRadius: 8, padding: "8px 12px" }}>
+                    <small style={{ color: dayNetProfit >= 0 ? "#166534" : "#991b1b", fontWeight: 700, fontSize: 10.5, display: "block" }}>NET PROFIT</small>
+                    <b style={{ color: dayNetProfit >= 0 ? "#15803d" : "#c4161c", fontSize: 17 }}>{inr(dayNetProfit)}</b>
+                  </div>
+                </div>
+
+                <div className="tw" style={{ maxHeight: 240 }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Reason / Details</th>
+                        <th>Mode</th>
+                        <th className="a">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedDayExpenses.map((e, idx) => (
+                        <tr key={e.id || idx}>
+                          <td>
+                            <span className={`exp-cat-pill ${e.cat === "Vendor" ? "vendor" : e.cat === "Supplier Salary" ? "salary" : "other"}`}>
+                              {e.cat === "Vendor" ? "🏪" : e.cat === "Supplier Salary" ? "👨‍💼" : "📝"} {e.cat}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 12.5, color: "#334155" }}>
+                            <div style={{ fontWeight: 600 }}>{e.reason || "—"}</div>
+                            <small style={{ color: "#64748b", fontSize: 11 }}>{e.time}</small>
+                          </td>
+                          <td>
+                            <span className={`exp-mode-pill ${(e.mode || "Cash").toLowerCase()}`}>
+                              {(e.mode || "Cash") === "GPay" ? "📱 GPay" : "💵 Cash"}
+                            </span>
+                          </td>
+                          <td className="a" style={{ color: "#c4161c", fontWeight: 700 }}>
+                            {inr(e.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="card"><div className="ch">📋 Sales Detail Report ({dl})<input className="srch" placeholder="🔍 Search by payment type or time" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
+            <div className="tw tall"><table><thead><tr><th>#</th><th>Time</th><th>Payment Type</th><th className="a">Amount</th></tr></thead>
               <tbody>{all.slice((pg - 1) * 15, pg * 15).map((x, i) => {
-                const payMode = ((pg - 1) * 15 + i) % 2 === 0 ? "Cash" : "GPay";
+                const globalIdx = parseInt(x.id.replace(/\D/g,"")) % 3;
                 return (
                   <tr key={x.id}>
                     <td>{(pg - 1) * 15 + i + 1}</td>
                     <td>{x.t}</td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: payMode === "Cash" ? "#16a34a" : "#7c3aed", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <span>{payMode === "Cash" ? "💵" : "📱"}</span>
-                        <span>{payMode}</span>
-                      </span>
-                    </td>
+                    <td>{payBadge(globalIdx)}</td>
                     <td className="a">{money(x.a)}</td>
                   </tr>
                 );
@@ -4265,6 +4637,48 @@ h2.t{text-align:center;color:var(--dk);font-size:30px;margin:-22px 0 12px;font-w
 .cg span{padding:6px 0;border:1px solid #eef2f6;cursor:pointer;font-weight:600}
 .cg span.o{color:#b5bcc6;cursor:default;font-weight:400}
 .cg span.sel{background:var(--blue);color:#fff;border-radius:5px}
+.dm-selectors{display:flex;gap:16px;flex-wrap:wrap}
+.dm-group{flex:1;min-width:120px;display:flex;flex-direction:column;gap:6px}
+.dm-group label{font-weight:700;font-size:13px;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.5px}
+.dm-group select{padding:10px 14px;border-radius:8px;border:1px solid #c5d6ea;font:600 15px Roboto,Arial,sans-serif;background:#fff;color:#1e3a5f;cursor:pointer;appearance:auto;-webkit-appearance:auto}
+.dm-group select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #4a9af333}
+.pay-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:16px;font-weight:700;font-size:13px;white-space:nowrap}
+.pe-hero-profit,.pe-hero-expense{background:#f0fdf4;border:2px solid #a9d8b5;border-radius:12px;padding:16px 20px;margin:10px 0;text-align:center}
+.pe-hero-expense{background:#fef2f2;border-color:#f0a9ad}
+.pe-hero-profit.loss{background:#fef2f2;border-color:#f0a9ad}
+.pe-profit-amount,.pe-expense-amount{display:flex;flex-direction:column;gap:4px}
+.pe-label{font-weight:700;font-size:14px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px}
+.pe-value{font-size:32px;font-weight:800;line-height:1.2}
+.pe-value.profit{color:#0d8a2f}
+.pe-value.expense{color:#c4161c}
+.pe-margin{font-size:14px;font-weight:700;color:#0d6b3a;background:#d6eedb;display:inline-block;padding:2px 14px;border-radius:12px;margin-top:4px}
+.pe-summary{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+.pe-summary-row{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:600;color:#1e3a5f}
+.pe-summary-row.total{font-size:17px;font-weight:800;padding-top:4px}
+.pe-summary-divider{height:2px;background:linear-gradient(to right,#a9d8b5,#f0a9ad);border-radius:2px}
+.exp-cat-label{font-weight:700;font-size:13px;color:#1e3a5f;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.exp-cat-btns{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.exp-cat-btn{flex:1;min-width:100px;padding:10px 12px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font:600 13px Roboto,Arial,sans-serif;color:#475569;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;justify-content:center}
+.exp-cat-btn:hover{border-color:#94a3b8;background:#f8fafc}
+.exp-cat-btn.active{border-color:#c4161c;background:#fef2f2;color:#c4161c;box-shadow:0 0 0 3px #c4161c22}
+.exp-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.exp-field label{font-weight:700;font-size:13px;color:#1e3a5f}
+.exp-input{padding:10px 14px;border-radius:8px;border:1px solid #c5d6ea;font:500 14px Roboto,Arial,sans-serif;color:#1e3a5f;background:#fff;transition:border-color 0.2s}
+.exp-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #4a9af333}
+.exp-add-btn{width:100%;padding:12px;border-radius:10px;border:0;background:linear-gradient(#e85d68,#c4161c);color:#fff;font:700 15px Roboto,Arial,sans-serif;cursor:pointer;transition:opacity 0.2s}
+.exp-add-btn:hover:not(:disabled){opacity:0.9}
+.exp-add-btn:disabled{opacity:0.5;cursor:not-allowed}
+.exp-cat-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;white-space:nowrap}
+.exp-cat-pill.vendor{background:#e0f2fe;color:#0369a1}
+.exp-cat-pill.salary{background:#d9f2df;color:#1b7a3a}
+.exp-cat-pill.other{background:#fef3c7;color:#a16207}
+.exp-mode-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+.exp-mode-pill.cash{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.exp-mode-pill.gpay{background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe}
+.exp-del-btn{width:24px;height:24px;border:0;border-radius:6px;background:#fde0e0;color:#c4161c;cursor:pointer;font-size:12px;font-weight:700;transition:0.15s}
+.exp-del-btn:hover{background:#f9bebe}
+.exp-empty{text-align:center;padding:24px 12px;color:#94a3b8;font-size:14px;font-weight:600}
+.exp-count{background:#fff;color:#c4161c;font-size:13px;padding:2px 10px;border-radius:12px;font-weight:800}
 .tw{background:#fff;overflow:auto;max-height:265px;border-radius:4px}
 .tw.tall{max-height:none}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -4542,47 +4956,73 @@ tr.row{cursor:pointer}tr.row.sel{background:#e3f0ff}
 .kot-btn.void{flex:0 0 34px;background:#451a1a;color:#f87171;font-size:13px}
 .kot-btn.void:hover{background:#7f1d1d;color:#fff}
 
+.pe-cash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
 @media(max-width:860px){
 .g2,.g5{grid-template-columns:1fr}
 .grid[style]{grid-template-columns:1fr!important}
 .kpis{grid-template-columns:1fr 1fr}
-.big{font-size:26px;min-width:240px}
-.tw table{min-width:520px}.tw table.wide{min-width:760px}
+.big{font-size:24px;min-width:200px}
+.tw table{min-width:480px}.tw table.wide{min-width:680px}
 .kds-header{flex-direction:column;align-items:stretch}
 .kds-controls-col{align-items:flex-start}
+.login-roles-grid, .admin-cards-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+.bar{height:auto;min-height:44px;padding:6px 8px;flex-wrap:wrap;gap:6px}
+.cafe-window-title{font-size:12px}
+.user-display-name{display:none}
+.wc{display:none}
+.user-top-profile{gap:4px;padding:2px 6px}
+.user-role-badge{font-size:10.5px;padding:2px 6px}
+.user-logout-btn{padding:2px 8px;font-size:10.5px}
+.pe-cash-grid{grid-template-columns:1fr!important;gap:10px}
 }
 @media(max-width:560px){
-.sd-wood{padding:8px 6px}
-.win{border-radius:8px}
-.in{margin:6px;padding:10px;min-height:calc(100vh - 90px)}
-.home{min-height:calc(100vh - 150px);gap:16px}
-.big{width:100%;min-width:0;font-size:22px;padding:22px 16px;gap:12px}
-.big i{font-size:34px}
-.ch{font-size:16px;padding:8px 10px;flex-wrap:wrap}
+.sd-wood{padding:6px 4px}
+.win{border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.in{margin:4px;padding:8px;min-height:calc(100vh - 80px)}
+.home{min-height:calc(100vh - 120px);gap:12px}
+.big{width:100%;min-width:0;font-size:19px;padding:18px 12px;gap:10px}
+.big i{font-size:28px}
+.ch{font-size:15px;padding:8px 10px;flex-wrap:wrap;gap:8px}
 .ch .srch,.ch>span{width:100%;flex:1 1 100%}
-.ch>span{display:flex;gap:8px}
+.ch>span{display:flex;gap:6px}
 .ch>span .srch{flex:1;width:auto!important;min-width:0}
 .ab{margin-left:0;white-space:nowrap}
-.srch{width:100%}
-.cb{padding:8px}
-.kp{padding:10px;gap:10px}.kp>div{min-width:100%}
-.kp b{font-size:20px}.ic{width:40px;height:40px;font-size:18px}
-.inc{padding:10px}.inc b{font-size:21px}
-.chart{gap:3px;margin-left:28px;height:110px}
-.chart i::after{font-size:8px}
+.srch{width:100%;font-size:12px}
+.cb{padding:8px 6px}
+.kp{padding:8px;gap:8px}.kp>div{min-width:100%}
+.kp b{font-size:19px}.ic{width:36px;height:36px;font-size:16px}
+.inc{padding:8px;flex-direction:column;gap:6px;align-items:flex-start}.inc b{font-size:19px}
+.chart{gap:3px;margin-left:24px;height:100px}
+.chart i::after{font-size:7.5px}
 .chart i:nth-child(even)::after{visibility:hidden}
-.chart u{left:-28px}
+.chart u{left:-24px;font-size:9px}
 .cn{padding:2px 6px 6px}
-.cg{font-size:13px}.cg span{padding:8px 0}
+.cg{font-size:12px}.cg span{padding:6px 0}
 .kpis{grid-template-columns:1fr}
-.kpis b{font-size:20px}
-.pg{justify-content:center!important;flex-wrap:wrap}
-.dt{grid-template-columns:100px 1fr;font-size:13px}
-.hd{flex-wrap:wrap}.hd h3{font-size:17px}
-.bk{padding:6px 12px}.bar span{width:30px}
-td,th{padding:6px 8px}
-.modal-body{grid-template-columns:1fr}
-.kitchen-live-banner{left:10px;right:10px;top:10px}
+.kpis b{font-size:19px}
+.pg{justify-content:center!important;flex-wrap:wrap;gap:4px}
+.pg button{min-width:24px;height:24px;font-size:11px}
+.dt{grid-template-columns:100px 1fr;font-size:12.5px}
+.hd{flex-wrap:wrap;gap:8px}.hd h3{font-size:16px}
+.bk{padding:5px 10px;font-size:12px}
+td,th{padding:6px 6px;font-size:11.5px}
+.modal-overlay{padding:8px}
+.modal-box{width:100%!important;max-width:100%!important;margin:0 auto;max-height:94vh}
+.modal-body{grid-template-columns:1fr;padding:12px}
+.kitchen-live-banner{left:8px;right:8px;top:8px;padding:10px 12px}
+.pe-hero-profit,.pe-hero-expense{padding:12px 14px;margin:6px 0}
+.pe-value{font-size:24px}
+.exp-cat-btns{gap:6px}
+.exp-cat-btn{padding:8px 8px;font-size:12px;min-width:80px}
+.tw table{min-width:100%!important}
+.mobile-view-container{padding:0}
+.mobile-shell{max-width:100%;border:none;border-radius:0;box-shadow:none;min-height:100vh}
+.mobile-notch{display:none}
+.dm-selectors{gap:8px}
+.dm-group{min-width:100%}
 }
 
 /* --- Multi-Role Login Portal --- */
