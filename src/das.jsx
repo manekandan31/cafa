@@ -70,23 +70,29 @@ const STK0 = [
 ];
 
 /* ---------- Default Dine-in Tables Data (Table Revenue & Income) ---------- */
+/* ---------- Default Dine-in Tables Data (5 Tables G + 5 Tables C) ---------- */
 const TABLES0 = [
-  { id: "T1", name: "Table 1", seats: 2, status: "Occupied", guests: 2, seatedAt: "10:15 AM", order: [["Cappuccino", 2, 120, "Staff"], ["Veg Sandwich", 1, 150, "Staff"]], waiter: "Karthik", qrCount: 0, settledIncome: 850 },
-  { id: "T2", name: "Table 2", seats: 4, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 620 },
-  { id: "T3", name: "Table 3", seats: 2, status: "Occupied", guests: 1, seatedAt: "10:35 AM", order: [["Cold Coffee", 1, 180, "QR"], ["Chocolate Muffin", 1, 110, "QR"]], waiter: "Priya", qrCount: 2, settledIncome: 1150 },
-  { id: "T4", name: "Table 4", seats: 6, status: "Reserved", guests: 5, seatedAt: "11:30 AM", customer: "Dr. Arvind (Birthday)", order: [], waiter: "Ramesh", qrCount: 0, settledIncome: 980 },
-  { id: "T5", name: "Table 5", seats: 4, status: "Occupied", guests: 3, seatedAt: "09:50 AM", order: [["Paneer Pizza", 1, 320, "Staff"], ["French Fries", 1, 130, "Staff"], ["Iced Tea", 2, 100, "QR"]], waiter: "Karthik", qrCount: 1, settledIncome: 1420 },
-  { id: "T6", name: "Table 6", seats: 4, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 750 },
-  { id: "T7", name: "Table 7", seats: 2, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 480 },
-  { id: "T8", name: "Table 8", seats: 8, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 1290 }
+  // 5 Tables in G Section (Garden / Ground)
+  { id: "G1", name: "Table G1", section: "G", seats: 2, status: "Occupied", guests: 2, seatedAt: "10:15 AM", order: [["Cappuccino", 2, 120, "Staff"], ["Veg Sandwich", 1, 150, "Staff"]], waiter: "Karthik", qrCount: 0, settledIncome: 850, payMethod: "Cash" },
+  { id: "G2", name: "Table G2", section: "G", seats: 4, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 620, payMethod: "GPay" },
+  { id: "G3", name: "Table G3", section: "G", seats: 2, status: "Occupied", guests: 1, seatedAt: "10:35 AM", order: [["Cold Coffee", 1, 180, "QR"], ["Chocolate Muffin", 1, 110, "QR"]], waiter: "Priya", qrCount: 2, settledIncome: 1150, payMethod: "50/50" },
+  { id: "G4", name: "Table G4", section: "G", seats: 6, status: "Reserved", guests: 5, seatedAt: "11:30 AM", customer: "Dr. Arvind (Birthday)", order: [], waiter: "Ramesh", qrCount: 0, settledIncome: 980, payMethod: "Cash" },
+  { id: "G5", name: "Table G5", section: "G", seats: 4, status: "Occupied", guests: 3, seatedAt: "09:50 AM", order: [["Paneer Pizza", 1, 320, "Staff"], ["French Fries", 1, 130, "Staff"], ["Iced Tea", 2, 100, "QR"]], waiter: "Karthik", qrCount: 1, settledIncome: 1420, payMethod: "50/50" },
+  
+  // 5 Tables in C Section (Cafe / Central)
+  { id: "C1", name: "Table C1", section: "C", seats: 2, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 750, payMethod: "GPay" },
+  { id: "C2", name: "Table C2", section: "C", seats: 4, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 480, payMethod: "Cash" },
+  { id: "C3", name: "Table C3", section: "C", seats: 2, status: "Available", guests: 0, seatedAt: "—", order: [], waiter: "—", qrCount: 0, settledIncome: 1290, payMethod: "GPay" },
+  { id: "C4", name: "Table C4", section: "C", seats: 6, status: "Occupied", guests: 3, seatedAt: "11:45 AM", order: [["Latte", 2, 150, "Staff"], ["Marble Cake", 2, 90, "Staff"]], waiter: "Priya", qrCount: 1, settledIncome: 950, payMethod: "Cash" },
+  { id: "C5", name: "Table C5", section: "C", seats: 8, status: "Occupied", guests: 4, seatedAt: "12:10 PM", order: [["Burger", 2, 220, "Staff"], ["Choco Shake", 2, 160, "QR"]], waiter: "Ramesh", qrCount: 2, settledIncome: 1350, payMethod: "50/50" }
 ];
 
 /* ---------- Initial Kitchen Order Tickets (KDS) ---------- */
 const INITIAL_KITCHEN_ORDERS = [
   {
     id: "KOT-1041",
-    tableId: "T1",
-    tableName: "Table 1",
+    tableId: "G1",
+    tableName: "Table G1",
     time: "10:15 AM",
     timestamp: Date.now() - 4 * 60 * 1000,
     source: "Staff",
@@ -99,8 +105,8 @@ const INITIAL_KITCHEN_ORDERS = [
   },
   {
     id: "KOT-1042",
-    tableId: "T3",
-    tableName: "Table 3",
+    tableId: "G3",
+    tableName: "Table G3",
     time: "10:35 AM",
     timestamp: Date.now() - 1 * 60 * 1000,
     source: "QR Code",
@@ -113,8 +119,8 @@ const INITIAL_KITCHEN_ORDERS = [
   },
   {
     id: "KOT-1040",
-    tableId: "T5",
-    tableName: "Table 5",
+    tableId: "G5",
+    tableName: "Table G5",
     time: "09:55 AM",
     timestamp: Date.now() - 14 * 60 * 1000,
     source: "QR Code",
@@ -178,6 +184,7 @@ const monthTotal = (y, m) => {
   return { rev, items, days };
 };
 const inr = (n) => "₹" + Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+const PAYMENT_TYPES = ["Cash", "Card", "GPay"];
 const txs = (m, d, n) => Array.from({ length: n }, (_, i) => {
   const t = 540 + i * 8 + (i % 3), h = Math.floor(t / 60), it = ITEMS[i % 15];
   return { t: `${pad(h > 12 ? h - 12 : h)}:${pad(t % 60)} ${h >= 12 ? "PM" : "AM"}`, id: `TXN_25${pad(m + 1)}${pad(d)}${pad(i + 1, 3)}`, i: it[0], a: it[1] };
@@ -253,15 +260,15 @@ function Window({ children, back, currentUser, onLogout }) {
     <div className="sd-wood"><style>{CSS}</style>
       <div className="win">
         <div className="bar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             {back ? <button className="bk" onClick={back}>‹ Back</button> : null}
-            <span className="cafe-window-title">
+            <div className="cafe-window-title">
               <span style={{ fontSize: 16 }}>☕</span>
-              <b>ESPRESSO & CO. CAFE</b>
-            </span>
+              <span>ESPRESSO & CO. CAFE</span>
+            </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {currentUser && (
               <div className="user-top-profile">
                 <span className={`user-role-badge ${currentUser.role}`}>
@@ -276,7 +283,8 @@ function Window({ children, back, currentUser, onLogout }) {
                   onClick={onLogout}
                   title="Sign out or switch login"
                 >
-                  🚪 Switch / Logout
+                  <span>🚪</span>
+                  <span>Switch / Logout</span>
                 </button>
               </div>
             )}
@@ -1707,20 +1715,20 @@ function LoginView({ onLogin }) {
       id: "supplier",
       title: "Supplier (Suplyer)",
       badge: "🚚 Supply & Inventory",
-      tagline: "Raw Ingredients & Vendor Logistics",
-      desc: "Vendor logistics hub for managing inventory stock levels, low-stock warnings, supplier contacts, and replenishment.",
+      tagline: "Supplier Main Role & Kitchen Dispatch",
+      desc: "Supplier receives kitchen orders with exact item details, sends alerts to Admin, manages 10 tables (5 G & 5 C), extra tables/seats, and vendor stock.",
       color: "#059669",
       accent: "#10b981",
       gradient: "linear-gradient(135deg, #047857 0%, #10b981 100%)",
       icon: "🚚",
       defaultUser: "supplier",
       defaultPass: "supplier123",
-      landingRoute: "/glossary",
-      landingName: "Supplier Stock & Vendor Hub",
+      landingRoute: "/supplier",
+      landingName: "Supplier Floor & Kitchen Command",
       highlights: [
-        "Live Inventory Stock & Unit Balances",
-        "Low Stock & Out-of-Stock Warnings",
-        "Direct Vendor Supply Directory",
+        "Kitchen Messages Dispatch ➔ Send to Admin",
+        "Manage 10 Tables (5 Called G & 5 Called C)",
+        "Add Extra Tables & Edit Extra Seats",
         "Raw Ingredient Restocking Controls"
       ]
     },
@@ -2086,8 +2094,23 @@ function Review({ go, sub }) {
     <div className="inc"><span className="ic">💰</span><span><small>Total Income Since Sales Started</small><b>₹{TOTAL_INCOME.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b><em>{SALES_START} – Today</em></span></div></div></div>;
   const detail = (
     <div className="card"><div className="ch">📋 Sales Detail Report</div>
-      <div className="tw"><table><thead><tr><th>#</th><th>Time</th><th>Transaction ID</th><th>Item</th><th className="a">Amount</th></tr></thead>
-        <tbody>{TODAY.map((x, i) => <tr key={i}><td>{i + 1}</td><td>{TT[i]}</td><td>TXN_{101 + i}</td><td>{x[1]}</td><td className="a">{money(x[0])}</td></tr>)}</tbody></table></div></div>
+      <div className="tw"><table><thead><tr><th>#</th><th>Time</th><th>Payment Mode</th><th className="a">Amount</th></tr></thead>
+        <tbody>{TODAY.map((x, i) => {
+          const payMode = i % 2 === 0 ? "Cash" : "GPay";
+          return (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              <td>{TT[i]}</td>
+              <td>
+                <span style={{ fontWeight: 700, color: payMode === "Cash" ? "#16a34a" : "#7c3aed", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span>{payMode === "Cash" ? "💵" : "📱"}</span>
+                  <span>{payMode}</span>
+                </span>
+              </td>
+              <td className="a">{money(x[0])}</td>
+            </tr>
+          );
+        })}</tbody></table></div></div>
   );
   const dl = `${cal.d} ${MF[cal.m]} ${cal.y}`;
   const all = txs(cal.m, cal.d, 75).filter((x) => !q || (x.id + x.i + x.t).toLowerCase().includes(q.toLowerCase()));
@@ -2108,8 +2131,23 @@ function Review({ go, sub }) {
             <div className="card g"><div className="cb"><div className="sel-t">Selected Date: {dl}</div><KP rev={rev} n={n} /><div className="hl">Hourly Sales ({dl})</div><Chart v={hourly(cal.d)} />
               <div className="inc"><span className="ic">🗓</span><span><small>Total Sales in {MN[cal.m]} {cal.y}</small><b>{inr(mt.rev)}</b><em>{mt.items} items sold · {mt.days} sales days</em></span></div></div></div></div>
           <div className="card"><div className="ch">📋 Sales Detail Report ({dl})<input className="srch" placeholder="🔍 Search transactions..." value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
-            <div className="tw tall"><table><thead><tr><th>#</th><th>Time</th><th>Transaction ID</th><th>Item</th><th className="a">Amount</th></tr></thead>
-              <tbody>{all.slice((pg - 1) * 15, pg * 15).map((x, i) => <tr key={x.id}><td>{(pg - 1) * 15 + i + 1}</td><td>{x.t}</td><td>{x.id}</td><td>{x.i}</td><td className="a">{money(x.a)}</td></tr>)}</tbody></table></div>
+            <div className="tw tall"><table><thead><tr><th>#</th><th>Time</th><th>Payment Mode</th><th className="a">Amount</th></tr></thead>
+              <tbody>{all.slice((pg - 1) * 15, pg * 15).map((x, i) => {
+                const payMode = ((pg - 1) * 15 + i) % 2 === 0 ? "Cash" : "GPay";
+                return (
+                  <tr key={x.id}>
+                    <td>{(pg - 1) * 15 + i + 1}</td>
+                    <td>{x.t}</td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: payMode === "Cash" ? "#16a34a" : "#7c3aed", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <span>{payMode === "Cash" ? "💵" : "📱"}</span>
+                        <span>{payMode}</span>
+                      </span>
+                    </td>
+                    <td className="a">{money(x.a)}</td>
+                  </tr>
+                );
+              })}</tbody></table></div>
             <div className="pg">
               <button disabled={pg <= 1} onClick={() => setPage(Math.max(1, pg - 1))}>‹</button>
               {Array.from({ length: Math.min(pages, 5) }, (_, i) => <button key={i} className={pg === i + 1 ? "on" : ""} onClick={() => setPage(i + 1)}>{i + 1}</button>)}
@@ -2208,7 +2246,43 @@ function Glossary({ go, sub, currentUser }) {
       </div>
 
       {sub !== "stock" ? (
-        <div className="grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
+        <>
+          {/* Out-of-Stock Alert Banner in Vendors tab */}
+          {(() => {
+            const outItems = stk.filter(r => (Number(r[3]) || 0) === 0);
+            if (outItems.length === 0) return null;
+            return (
+              <div style={{ background: "linear-gradient(135deg,#fff5f5,#ffe8e8)", border: "1.5px solid #fc8181", borderRadius: 12, padding: "14px 18px", margin: "0 0 14px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 18 }}>🚨</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: "#c53030", letterSpacing: "0.3px" }}>
+                    Out of Stock Alert — {outItems.length} item{outItems.length !== 1 ? "s" : ""} need restocking
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                  {outItems.map((r, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.75)", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>📦</span>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: "#1a202c" }}>{r[0]}</div>
+                          <div style={{ fontSize: 11, color: "#718096" }}>{r[1]} · SKU: {r[2]}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: "#718096" }}>Vendor / Supplier</div>
+                          <div style={{ fontWeight: 700, fontSize: 12, color: "#c53030" }}>🏢 {r[5] || "Unknown Vendor"}</div>
+                        </div>
+                        <span style={{ background: "#c53030", color: "#fff", fontWeight: 800, fontSize: 10, padding: "3px 8px", borderRadius: 20 }}>OUT OF STOCK</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+          <div className="grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
           <div className="card">
             <div className="ch">
               👥 Vendors
@@ -2366,6 +2440,7 @@ function Glossary({ go, sub, currentUser }) {
             </div>
           </div>
         </div>
+        </>
       ) : (
         <>
           <div className="kpis">
@@ -2558,285 +2633,492 @@ function Glossary({ go, sub, currentUser }) {
 }
 
 /* ---------- Tables Component (Table Income & Rupees Showcase) ---------- */
+/* ---------- Daily Orders & Profit by Table (Supplier Main Role, 5 G Tables + 5 C Tables, Kitchen-Supplier-Admin Dispatch) ---------- */
+const MASTER_SLOTS = [
+  { time: "08:15 AM", label: "Morning Breakfast & Coffee", icon: "🌅" },
+  { time: "09:15 AM", label: "Morning Coffee & Pastry", icon: "☕" },
+  { time: "10:30 AM", label: "Mid-Morning Refreshment", icon: "🥪" },
+  { time: "11:45 AM", label: "Early Brunch & Coolers", icon: "🍹" },
+  { time: "01:00 PM", label: "Afternoon Lunch", icon: "🍕" },
+  { time: "02:15 PM", label: "Post-Lunch Coffee & Cake", icon: "🍰" },
+  { time: "03:45 PM", label: "Afternoon Snacks & Shakes", icon: "🍟" },
+  { time: "05:00 PM", label: "Evening Tea & Sandwiches", icon: "🫖" },
+  { time: "06:30 PM", label: "Sunset Burgers & Bites", icon: "🍔" },
+  { time: "07:45 PM", label: "Evening Appetizers & Bites", icon: "🌯" },
+  { time: "08:45 PM", label: "Dinner Special", icon: "🍽️" },
+  { time: "09:45 PM", label: "Night Beverages & Bakery", icon: "🌙" }
+];
+
+const TABLE_ORDER_TEMPLATES = [
+  [["Cappuccino", 2, 120], ["Veg Sandwich", 1, 150]], // 3 items, ₹390
+  [["Latte", 1, 150], ["Chocolate Muffin", 1, 110]], // 2 items, ₹260
+  [["Cold Coffee", 2, 180], ["Marble Cake", 1, 90]], // 3 items, ₹450
+  [["Paneer Pizza", 1, 320], ["French Fries", 1, 130], ["Iced Tea", 1, 100]], // 3 items, ₹550
+  [["Espresso", 2, 90], ["Marble Cake", 1, 90]], // 3 items, ₹270
+  [["Choco Shake", 2, 160], ["French Fries", 1, 130]], // 3 items, ₹450
+  [["Veg Sandwich", 2, 150], ["Iced Tea", 2, 100]], // 4 items, ₹500
+  [["Burger", 2, 220], ["Cold Coffee", 1, 180]], // 3 items, ₹620
+  [["Paneer Pizza", 2, 320], ["Choco Shake", 1, 160]], // 3 items, ₹800
+  [["Cappuccino", 2, 120], ["Chocolate Muffin", 2, 110]], // 4 items, ₹460
+  [["Chicken Burger", 1, 250], ["French Fries", 1, 130], ["Cold Coffee", 1, 180]], // 3 items, ₹560
+  [["Maggie", 2, 90], ["Lemon Tea", 2, 50], ["Samosa", 2, 60]] // 6 items, ₹400
+];
+
+const TABLE_ORDER_COUNTS = {
+  G1: 10,
+  G2: 7,
+  G3: 11,
+  G4: 6,
+  G5: 9,
+  C1: 8,
+  C2: 5,
+  C3: 12,
+  C4: 8,
+  C5: 10
+};
+
+function getSlotIndicesForCount(count) {
+  if (count >= 12) return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  if (count === 11) return [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11];
+  if (count === 10) return [0, 1, 2, 3, 4, 6, 7, 8, 10, 11];
+  if (count === 9) return [0, 1, 2, 4, 5, 7, 8, 10, 11];
+  if (count === 8) return [0, 1, 3, 4, 6, 8, 10, 11];
+  if (count === 7) return [0, 2, 4, 6, 8, 10, 11];
+  if (count === 6) return [0, 2, 4, 6, 8, 11];
+  if (count === 5) return [0, 2, 4, 7, 11];
+  return [0, 3, 6, 11];
+}
+
+function initDailyTableOrders(tablesList = TABLES0) {
+  const tableOrders = {};
+  tablesList.forEach((t, tIdx) => {
+    const tableId = t.id;
+    const orderCount = TABLE_ORDER_COUNTS[tableId] || 7;
+    const slotIndices = getSlotIndicesForCount(orderCount);
+    const orders = [];
+
+    for (let o = 0; o < orderCount; o++) {
+      const slot = MASTER_SLOTS[slotIndices[o] || (o % MASTER_SLOTS.length)];
+      const templateIdx = (o * 2 + tIdx) % TABLE_ORDER_TEMPLATES.length;
+      const baseItems = TABLE_ORDER_TEMPLATES[templateIdx];
+      const payMethod = (o + tIdx) % 3 === 0 ? "Cash" : (o + tIdx) % 3 === 1 ? "GPay" : "50/50";
+      const items = baseItems.map(it => [...it]);
+      const itemsCount = items.reduce((s, it) => s + it[1], 0);
+      const profit = items.reduce((s, it) => s + (it[1] * it[2]), 0);
+
+      orders.push({
+        id: `ORD-${tableId}-${o + 1}`,
+        orderNum: o + 1,
+        time: slot.time,
+        label: slot.label,
+        icon: slot.icon,
+        items,
+        itemsCount,
+        profit,
+        payMethod
+      });
+    }
+    tableOrders[tableId] = orders;
+  });
+  return tableOrders;
+}
+
+// Initial messages coming from Kitchen to Supplier
+const INITIAL_KITCHEN_MESSAGES = [
+  {
+    id: "KM-201",
+    time: "10:18 AM",
+    tableId: "G1",
+    tableName: "Table G1",
+    section: "G",
+    type: "ready",
+    title: "Kitchen Order Ready",
+    items: [["Cappuccino", 2, 120], ["Veg Sandwich", 1, 150]],
+    chefNote: "Fresh brew ready at barista counter. Hot toast plated.",
+    sentToAdmin: false,
+    sentToAdminTime: null
+  },
+  {
+    id: "KM-202",
+    time: "10:36 AM",
+    tableId: "G3",
+    tableName: "Table G3",
+    section: "G",
+    type: "prep",
+    title: "Special Note for Table G3",
+    items: [["Cold Coffee", 1, 180], ["Chocolate Muffin", 1, 110]],
+    chefNote: "Customer requested extra cold ice + warm muffin.",
+    sentToAdmin: false,
+    sentToAdminTime: null
+  },
+  {
+    id: "KM-203",
+    time: "11:48 AM",
+    tableId: "C4",
+    tableName: "Table C4",
+    section: "C",
+    type: "ready",
+    title: "Table C4 Order Prepared",
+    items: [["Latte", 2, 150], ["Marble Cake", 2, 90]],
+    chefNote: "Double shot latte + fresh marble cake slices ready.",
+    sentToAdmin: true,
+    sentToAdminTime: "11:50 AM"
+  },
+  {
+    id: "KM-204",
+    time: "12:12 PM",
+    tableId: "C5",
+    tableName: "Table C5",
+    section: "C",
+    type: "alert",
+    title: "Kitchen Food Allergy / Note",
+    items: [["Burger", 2, 220], ["Choco Shake", 2, 160]],
+    chefNote: "No onion in burgers as per guest request.",
+    sentToAdmin: false,
+    sentToAdminTime: null
+  }
+];
+
 function Tables({ go, tables, setTables, kitchenOrders = [], setKitchenOrders }) {
-  const [filterType, setFilterType] = useState("all"); // 'all' | 'active' | 'settled'
-  const [toast, setToast] = useState(null);
+  const [selectedId, setSelectedId] = useState("G1");
+  const [sectionFilter, setSectionFilter] = useState("all"); // 'all' | 'G' | 'C'
+  const [dailyOrders, setDailyOrders] = useState(() => initDailyTableOrders(tables));
+  const [kitchenMessages, setKitchenMessages] = useState(INITIAL_KITCHEN_MESSAGES);
+  const [showAddTableModal, setShowAddTableModal] = useState(false);
+  const [showEditSeatModal, setShowEditSeatModal] = useState(false);
+  const [showKitchenMsgBox, setShowKitchenMsgBox] = useState(true);
+  const [notificationToast, setNotificationToast] = useState(null);
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 4000);
-  };
+  // Add Table Form state
+  const [newTableSection, setNewTableSection] = useState("G");
+  const [newTableSeats, setNewTableSeats] = useState(4);
+  const [newTableName, setNewTableName] = useState("");
 
-  // Helper calculation for each table
-  const getTableStats = (t) => {
-    const activeOrder = t.order || [];
-    const activeRupees = activeOrder.reduce((sum, it) => sum + (Number(it[1]) || 1) * (Number(it[2]) || 0), 0);
-    const settledRupees = Number(t.settledIncome) || 0;
-    const totalRupees = activeRupees + settledRupees;
-    const itemsCount = activeOrder.reduce((sum, it) => sum + (Number(it[1]) || 0), 0);
+  // Edit Seat state
+  const [editSeatCount, setEditSeatCount] = useState(4);
+
+  const PAY_ICONS = { Cash: "💵", GPay: "📱", "50/50": "⚖️" };
+  const PAY_COLORS = { Cash: "#15803d", GPay: "#7e22ce", "50/50": "#b45309" };
+  const PAY_BG = { Cash: "rgba(22,163,74,0.08)", GPay: "rgba(126,34,206,0.08)", "50/50": "rgba(217,119,6,0.10)" };
+  const PAY_BORDER = { Cash: "#86efac", GPay: "#d8b4fe", "50/50": "#fde68a" };
+
+  // Calculate table stats from its orders
+  const getTableDailyStats = (tableId) => {
+    const orders = dailyOrders[tableId] || [];
+    const totalProfit = orders.reduce((s, ord) => s + ord.profit, 0);
+    const totalItems = orders.reduce((s, ord) => s + ord.itemsCount, 0);
+    let cashProfit = 0;
+    let gpayProfit = 0;
+    let fiftyFiftyProfit = 0;
+
+    orders.forEach(ord => {
+      if (ord.payMethod === "Cash") {
+        cashProfit += ord.profit;
+      } else if (ord.payMethod === "GPay") {
+        gpayProfit += ord.profit;
+      } else if (ord.payMethod === "50/50") {
+        fiftyFiftyProfit += ord.profit;
+        cashProfit += ord.profit / 2;
+        gpayProfit += ord.profit / 2;
+      }
+    });
+
+    const cashOrdersCount = orders.filter(o => o.payMethod === "Cash").length;
+    const gpayOrdersCount = orders.filter(o => o.payMethod === "GPay").length;
+    const fiftyOrdersCount = orders.filter(o => o.payMethod === "50/50").length;
+
     return {
-      activeRupees,
-      settledRupees,
-      totalRupees,
-      itemsCount,
-      activeOrder
+      orders,
+      totalProfit,
+      totalItems,
+      cashProfit,
+      gpayProfit,
+      fiftyFiftyProfit,
+      cashOrdersCount,
+      gpayOrdersCount,
+      fiftyOrdersCount
     };
   };
 
   // Grand totals across all tables
-  const totalIncome = tables.reduce((acc, t) => acc + getTableStats(t).totalRupees, 0);
-  const totalActiveIncome = tables.reduce((acc, t) => acc + getTableStats(t).activeRupees, 0);
-  const totalSettledIncome = tables.reduce((acc, t) => acc + getTableStats(t).settledRupees, 0);
-  const avgIncomePerTable = tables.length ? (totalIncome / tables.length) : 0;
+  const grandStats = tables.reduce((acc, t) => {
+    const st = getTableDailyStats(t.id);
+    acc.totalProfit += st.totalProfit;
+    acc.totalItems += st.totalItems;
+    acc.totalOrders += st.orders.length;
+    acc.cashProfit += st.cashProfit;
+    acc.gpayProfit += st.gpayProfit;
+    acc.fiftyFiftyProfit += st.fiftyFiftyProfit;
+    return acc;
+  }, { totalProfit: 0, totalItems: 0, totalOrders: 0, cashProfit: 0, gpayProfit: 0, fiftyFiftyProfit: 0 });
 
-  // Find top earning table
-  const sortedTables = [...tables].sort((a, b) => getTableStats(b).totalRupees - getTableStats(a).totalRupees);
-  const topTable = sortedTables[0] || tables[0];
-
-  // Settle bill action (transfers active running order to table's settled income)
-  const handleSettleTable = (tableId) => {
-    const table = tables.find((t) => t.id === tableId);
-    if (!table) return;
-    const stats = getTableStats(table);
-    if (stats.activeRupees === 0) return;
-
-    setTables(tables.map((t) => {
-      if (t.id === tableId) {
-        return {
-          ...t,
-          status: "Available",
-          settledIncome: (Number(t.settledIncome) || 0) + stats.activeRupees,
-          order: [],
-          guests: 0,
-          seatedAt: "—"
-        };
-      }
-      return t;
-    }));
-
-    // Mark kitchen tickets for this table as served
-    if (setKitchenOrders) {
-      setKitchenOrders((prev) => prev.map((o) => (o.tableId === tableId ? { ...o, status: "served" } : o)));
-    }
-
-    showToast(`Settled ₹${stats.activeRupees.toFixed(2)} from ${table.name}! Added to table total income.`);
-  };
-
-  // Quick action: Settle all active tables at once
-  const handleSettleAll = () => {
-    if (totalActiveIncome === 0) {
-      showToast("All tables are already settled! No active bills.");
-      return;
-    }
-    setTables(tables.map((t) => {
-      const active = (t.order || []).reduce((sum, it) => sum + (Number(it[1]) || 1) * (Number(it[2]) || 0), 0);
-      return {
-        ...t,
-        status: "Available",
-        settledIncome: (Number(t.settledIncome) || 0) + active,
-        order: [],
-        guests: 0,
-        seatedAt: "—"
-      };
-    }));
-    if (setKitchenOrders) {
-      setKitchenOrders((prev) => prev.map((o) => ({ ...o, status: "served" })));
-    }
-    showToast(`All active bills (₹${totalActiveIncome.toFixed(2)}) settled and added to table income!`);
-  };
-
-  // Quick action: Add a sample item to test live rupees increase
-  const handleAddSampleOrder = (tableId) => {
-    setTables(tables.map((t) => {
-      if (t.id === tableId) {
-        const curOrder = [...(t.order || [])];
-        curOrder.push(["Cold Coffee", 1, 180, "Staff"]);
-        return {
-          ...t,
-          status: "Occupied",
-          order: curOrder
-        };
-      }
-      return t;
-    }));
-    showToast(`Added +₹180 (Cold Coffee) to ${tableId}! Total income updated.`);
-  };
-
-  // Filtered list
-  const displayTables = tables.filter((t) => {
-    const stats = getTableStats(t);
-    if (filterType === "active") return stats.activeRupees > 0;
-    if (filterType === "settled") return stats.activeRupees === 0 && stats.settledRupees > 0;
-    return true;
+  // Filtered tables based on section (all, G, or C)
+  const filteredTables = tables.filter(t => {
+    if (sectionFilter === "all") return true;
+    return (t.section || t.id[0]) === sectionFilter;
   });
 
+  const selectedTable = tables.find(t => t.id === selectedId) || tables[0] || { id: "G1", name: "Table G1", seats: 2 };
+  const selStats = getTableDailyStats(selectedTable.id);
+
+  // Supplier action: Send Kitchen message to Admin
+  const handleSendToAdmin = (msgId) => {
+    const now = new Date();
+    const timeStr = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+    
+    let sentItemInfo = "";
+    setKitchenMessages(prev => prev.map(m => {
+      if (m.id === msgId) {
+        sentItemInfo = `${m.tableName}: ${m.items.map(it => `${it[1]}× ${it[0]}`).join(", ")}`;
+        return { ...m, sentToAdmin: true, sentToAdminTime: timeStr };
+      }
+      return m;
+    }));
+
+    setNotificationToast(`👑 Sent to Admin! Supplier forwarded: ${sentItemInfo}`);
+    setTimeout(() => setNotificationToast(null), 5000);
+  };
+
+  // Supplier action: Add Extra Table
+  const handleAddTable = (e) => {
+    e?.preventDefault();
+    const countInSection = tables.filter(t => (t.section || t.id[0]) === newTableSection).length;
+    const nextNum = countInSection + 1;
+    const tableId = `${newTableSection}${nextNum}`;
+    const tableName = newTableName.trim() || `Table ${tableId}`;
+
+    const newTableObj = {
+      id: tableId,
+      name: tableName,
+      section: newTableSection,
+      seats: Number(newTableSeats) || 4,
+      status: "Available",
+      guests: 0,
+      seatedAt: "—",
+      order: [],
+      waiter: "Karthik",
+      qrCount: 0,
+      settledIncome: 0,
+      payMethod: "Cash"
+    };
+
+    setTables(prev => [...prev, newTableObj]);
+
+    // Generate daily orders for new table
+    setDailyOrders(prev => {
+      const slotIndices = getSlotIndicesForCount(7);
+      const orders = [];
+      for (let o = 0; o < 7; o++) {
+        const slot = MASTER_SLOTS[slotIndices[o] || (o % MASTER_SLOTS.length)];
+        const templateIdx = (o + nextNum) % TABLE_ORDER_TEMPLATES.length;
+        const baseItems = TABLE_ORDER_TEMPLATES[templateIdx];
+        const payMethod = o % 3 === 0 ? "Cash" : o % 3 === 1 ? "GPay" : "50/50";
+        const items = baseItems.map(it => [...it]);
+        const itemsCount = items.reduce((s, it) => s + it[1], 0);
+        const profit = items.reduce((s, it) => s + (it[1] * it[2]), 0);
+        orders.push({
+          id: `ORD-${tableId}-${o + 1}`,
+          orderNum: o + 1,
+          time: slot.time,
+          label: slot.label,
+          icon: slot.icon,
+          items,
+          itemsCount,
+          profit,
+          payMethod
+        });
+      }
+      return { ...prev, [tableId]: orders };
+    });
+
+    setSelectedId(tableId);
+    setShowAddTableModal(false);
+    setNewTableName("");
+    setNotificationToast(`✅ Extra Table "${tableName}" (${newTableSeats} seats) successfully added to Section ${newTableSection}!`);
+    setTimeout(() => setNotificationToast(null), 4000);
+  };
+
+  // Supplier action: Edit Extra Seats
+  const handleUpdateSeats = (tableId, delta) => {
+    setTables(prev => prev.map(t => {
+      if (t.id === tableId) {
+        const newSeats = Math.max(1, (Number(t.seats) || 2) + delta);
+        return { ...t, seats: newSeats };
+      }
+      return t;
+    }));
+  };
+
+  const handleSaveCustomSeats = (tableId) => {
+    setTables(prev => prev.map(t => {
+      if (t.id === tableId) {
+        return { ...t, seats: Number(editSeatCount) || t.seats };
+      }
+      return t;
+    }));
+    setShowEditSeatModal(false);
+    setNotificationToast(`✅ Seats updated to ${editSeatCount} for ${selectedTable.name}!`);
+    setTimeout(() => setNotificationToast(null), 3000);
+  };
+
+  const gCount = tables.filter(t => (t.section || t.id[0]) === "G").length;
+  const cCount = tables.filter(t => (t.section || t.id[0]) === "C").length;
+  const pendingKitchenMsgs = kitchenMessages.filter(m => !m.sentToAdmin).length;
+
   return (
-    <div className="table-income-container">
-      {toast && (
-        <div className="table-income-toast">
-          <span>✅</span>
-          <span>{toast}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "4px 0" }}>
+
+      {/* ── TOAST NOTIFICATION FOR ADMIN / SUPPLIER ── */}
+      {notificationToast && (
+        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, background: "#0f172a", color: "#ffffff", padding: "12px 18px", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", gap: 10, border: "1.5px solid #3b82f6" }}>
+          <span style={{ fontSize: 18 }}>📢</span>
+          <span style={{ fontWeight: 800, fontSize: 13 }}>{notificationToast}</span>
         </div>
       )}
 
-      {/* Hero: Total Income from Tables */}
-      <div className="table-income-hero">
-        <div className="hero-income-main">
-          <div className="hero-income-badge">
-            <span className="badge-pulse-dot"></span>
-            <span>💰 CAFE FLOOR REVENUE OVERVIEW</span>
-          </div>
-          <span className="hero-income-label">TOTAL INCOME FROM TABLES</span>
-          <h1 className="hero-income-amount">
-            ₹{totalIncome.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </h1>
-          <p className="hero-income-sub">
-            Total revenue generated across all <b>{tables.length} dining tables</b> (live running bills + settled receipts).
-          </p>
-        </div>
 
-        {/* Quick action buttons */}
-        <div className="hero-actions-column">
-          {totalActiveIncome > 0 && (
-            <button
-              type="button"
-              className="hero-settle-btn"
-              onClick={handleSettleAll}
-              title="Settle all currently active bills and add directly to settled income"
-            >
-              <span>🧾</span>
-              <span>Settle All Active Bills (₹{totalActiveIncome.toFixed(2)})</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="hero-review-link-btn"
-            onClick={() => go("/review")}
-          >
-            <span>📈 View Full Sales Analytics ➔</span>
-          </button>
-        </div>
-      </div>
 
-      {/* 4 Income KPI Summary Cards */}
-      <div className="income-kpi-grid">
-        <div className="income-kpi-card settled-card">
-          <div className="kpi-icon-wrap" style={{ background: "#dcfce7", color: "#15803d" }}>
-            <span>✅</span>
-          </div>
-          <div className="kpi-text-wrap">
-            <span className="kpi-title">Settled Table Income</span>
-            <b className="kpi-val" style={{ color: "#15803d" }}>
-              ₹{totalSettledIncome.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </b>
-            <small className="kpi-desc">Paid & cleared bills</small>
-          </div>
-        </div>
-
-        <div className="income-kpi-card active-card">
-          <div className="kpi-icon-wrap" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
-            <span>⏳</span>
-          </div>
-          <div className="kpi-text-wrap">
-            <span className="kpi-title">Active Running Orders</span>
-            <b className="kpi-val" style={{ color: "#1d4ed8" }}>
-              ₹{totalActiveIncome.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </b>
-            <small className="kpi-desc">Currently dining on tables</small>
-          </div>
-        </div>
-
-        <div className="income-kpi-card avg-card">
-          <div className="kpi-icon-wrap" style={{ background: "#fef3c7", color: "#b45309" }}>
-            <span>📊</span>
-          </div>
-          <div className="kpi-text-wrap">
-            <span className="kpi-title">Average per Table</span>
-            <b className="kpi-val" style={{ color: "#b45309" }}>
-              ₹{avgIncomePerTable.toFixed(2)}
-            </b>
-            <small className="kpi-desc">Across all {tables.length} tables</small>
-          </div>
-        </div>
-
-        <div className="income-kpi-card top-card">
-          <div className="kpi-icon-wrap" style={{ background: "#f3e8ff", color: "#7e22ce" }}>
-            <span>🏆</span>
-          </div>
-          <div className="kpi-text-wrap">
-            <span className="kpi-title">Top Earning Table</span>
-            <b className="kpi-val" style={{ color: "#7e22ce" }}>
-              {topTable?.name} (₹{getTableStats(topTable).totalRupees.toLocaleString("en-IN")})
-            </b>
-            <small className="kpi-desc">Highest revenue contribution</small>
-          </div>
-        </div>
-      </div>
-
-      {/* Table-by-Table Income Ranking & Visual Bar Chart */}
-      <div className="table-income-chart-card">
-        <div className="chart-card-header">
+      {/* ── TOP HERO SUMMARY: TODAY'S TOTAL PROFIT & ITEMS SOLD ── */}
+      <div className="card" style={{ padding: "16px 20px", background: "linear-gradient(135deg,#0f172a,#1e3a8a)", color: "#fff", borderRadius: 12, border: "1px solid #3b82f6" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 17, color: "var(--ink)", fontWeight: 800 }}>
-              📊 Rupees Earned by Each Table
-            </h3>
-            <small style={{ color: "var(--mut)", fontSize: 13 }}>
-              Comparative breakdown of revenue collected from Table 1 to Table {tables.length}
-            </small>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 4 }}>
+              Today's Cafe Operations · 10 Tables (5 G Tables + 5 C Tables)
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: "#ffffff", display: "flex", alignItems: "center", gap: 10 }}>
+              <span>💰 Today's Total Profit:</span>
+              <span style={{ color: "#34d399", textShadow: "0 2px 10px rgba(52,211,153,0.3)" }}>
+                ₹{grandStats.totalProfit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
           </div>
-          <div className="table-filter-tabs">
+          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ background: "rgba(255,255,255,0.12)", padding: "8px 16px", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#cbd5e1" }}>Total Items Sold Today</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#38bdf8" }}>🛒 {grandStats.totalItems} Items</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.12)", padding: "8px 16px", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#cbd5e1" }}>Total Daily Orders</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#facc15" }}>📋 {grandStats.totalOrders} Orders</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Cash / GPay / 50/50 breakdown row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+          <div style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 8, padding: "8px 12px" }}>
+            <div style={{ fontSize: 11, color: "#86efac", fontWeight: 700 }}>💵 Total Cash Received</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#ffffff", marginTop: 2 }}>₹{grandStats.cashProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}</div>
+          </div>
+          <div style={{ background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.35)", borderRadius: 8, padding: "8px 12px" }}>
+            <div style={{ fontSize: 11, color: "#d8b4fe", fontWeight: 700 }}>📱 Total GPay Received</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#ffffff", marginTop: 2 }}>₹{grandStats.gpayProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}</div>
+          </div>
+          <div style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 8, padding: "8px 12px" }}>
+            <div style={{ fontSize: 11, color: "#fde68a", fontWeight: 700 }}>⚖️ 50/50 Split Volume</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#ffffff", marginTop: 2 }}>₹{grandStats.fiftyFiftyProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 10 TABLES SELECTOR GRID (5 CALLED G & 5 CALLED C) ── */}
+      <div className="card" style={{ padding: "14px 18px" }}>
+        
+        {/* Section Tabs and Controls */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <button
-              type="button"
-              className={filterType === "all" ? "on" : ""}
-              onClick={() => setFilterType("all")}
+              onClick={() => setSectionFilter("all")}
+              style={{ background: sectionFilter === "all" ? "#1e293b" : "#f1f5f9", color: sectionFilter === "all" ? "#fff" : "#475569", border: "1px solid #cbd5e1", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
             >
               All Tables ({tables.length})
             </button>
             <button
-              type="button"
-              className={filterType === "active" ? "on" : ""}
-              onClick={() => setFilterType("active")}
+              onClick={() => setSectionFilter("G")}
+              style={{ background: sectionFilter === "G" ? "#15803d" : "#f0fdf4", color: sectionFilter === "G" ? "#fff" : "#166534", border: "1.5px solid #86efac", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
             >
-              With Active Order ({tables.filter((t) => getTableStats(t).activeRupees > 0).length})
+              🌿 5 Tables Called G ({gCount})
             </button>
             <button
-              type="button"
-              className={filterType === "settled" ? "on" : ""}
-              onClick={() => setFilterType("settled")}
+              onClick={() => setSectionFilter("C")}
+              style={{ background: sectionFilter === "C" ? "#0369a1" : "#f0f9ff", color: sectionFilter === "C" ? "#fff" : "#0369a1", border: "1.5px solid #bae6fd", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
             >
-              Fully Settled ({tables.filter((t) => getTableStats(t).activeRupees === 0 && getTableStats(t).settledRupees > 0).length})
+              ☕ 5 Tables Called C ({cCount})
             </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              onClick={() => {
+                setNewTableName("");
+                setShowAddTableModal(true);
+              }}
+              style={{ background: "#059669", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+            >
+              <span>➕ Add Extra Table</span>
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 800, color: "#2563eb", background: "#eff6ff", padding: "3px 9px", borderRadius: 6, border: "1px solid #bfdbfe" }}>
+              Viewing: {selectedTable.name} ({selStats.orders.length} Orders)
+            </span>
           </div>
         </div>
 
-        {/* Visual Progress Bars for Each Table */}
-        <div className="table-bars-list">
-          {sortedTables.map((t) => {
-            const stats = getTableStats(t);
-            const percentage = totalIncome > 0 ? ((stats.totalRupees / totalIncome) * 100).toFixed(1) : "0.0";
-            const maxTableRupees = getTableStats(topTable).totalRupees || 1;
-            const barWidth = Math.max(8, (stats.totalRupees / maxTableRupees) * 100);
+        {/* 10 Tables Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+          {filteredTables.map(t => {
+            const isSel = t.id === selectedId;
+            const st = getTableDailyStats(t.id);
+            const isG = (t.section || t.id[0]) === "G";
 
             return (
-              <div key={t.id} className="table-bar-row">
-                <div className="bar-table-label">
-                  <b>{t.name}</b>
-                  {stats.activeRupees > 0 && <span className="active-dot-chip">● Live Order</span>}
+              <div
+                key={t.id}
+                onClick={() => setSelectedId(t.id)}
+                style={{
+                  background: isSel ? "#1d4ed8" : "#ffffff",
+                  color: isSel ? "#ffffff" : "#1e293b",
+                  border: isSel ? "2.5px solid #1e40af" : isG ? "1.5px solid #bbf7d0" : "1.5px solid #bfdbfe",
+                  borderRadius: 10,
+                  padding: "10px 8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 3,
+                  boxShadow: isSel ? "0 4px 14px rgba(29,78,216,0.30)" : "none",
+                  transform: isSel ? "scale(1.02)" : "scale(1)",
+                  transition: "all 0.15s ease",
+                  position: "relative"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 14 }}>{isG ? "🌿" : "☕"}</span>
+                  <span style={{ fontWeight: 900, fontSize: 13.5 }}>{t.name}</span>
                 </div>
-                <div className="bar-track-wrap">
-                  <div
-                    className="bar-fill"
-                    style={{
-                      width: `${barWidth}%`,
-                      background: stats.activeRupees > 0
-                        ? "linear-gradient(90deg, #10b981 0%, #3b82f6 100%)"
-                        : "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+
+                <div style={{ fontWeight: 900, fontSize: 14, color: isSel ? "#fef08a" : "#15803d", marginTop: 1 }}>
+                  ₹{st.totalProfit.toLocaleString("en-IN")}
+                </div>
+
+                <div style={{ fontSize: 10.5, opacity: isSel ? 0.9 : 0.75 }}>
+                  🛒 {st.totalItems} items · <b>{st.orders.length} orders</b>
+                </div>
+
+                {/* Seat capacity & Edit Extra Seat button */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, paddingTop: 4, borderTop: isSel ? "1px solid rgba(255,255,255,0.2)" : "1px solid #f1f5f9", width: "100%", justifyContent: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: isSel ? "#e0f2fe" : "#64748b" }}>
+                    🪑 {t.seats || 4} Seats
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpdateSeats(t.id, 1);
                     }}
-                  ></div>
-                </div>
-                <div className="bar-rupees-value">
-                  <b>₹{stats.totalRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
-                  <small>({percentage}%)</small>
+                    title="Add Extra Seat to this table"
+                    style={{ background: isSel ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: isSel ? "#fff" : "#1e293b", border: "none", borderRadius: 3, padding: "0 4px", fontSize: 10, fontWeight: 900, cursor: "pointer" }}
+                  >
+                    +1
+                  </button>
                 </div>
               </div>
             );
@@ -2844,215 +3126,910 @@ function Tables({ go, tables, setTables, kitchenOrders = [], setKitchenOrders })
         </div>
       </div>
 
-      {/* Grid of Individual Table Rupees Cards */}
-      <div className="table-cards-heading">
-        <h3 style={{ margin: "16px 0 10px", fontSize: 18, color: "var(--ink)", fontWeight: 800 }}>
-          🪑 Individual Table Income Cards
-        </h3>
-      </div>
+      {/* ── SELECTED TABLE DETAIL: ORDERS FROM MORNING TO NIGHT ── */}
+      <div className="card" style={{ padding: 0, overflow: "hidden", border: "2px solid #2563eb", boxShadow: "0 8px 24px rgba(37,99,235,0.12)" }}>
+        
+        {/* Table Header Banner */}
+        <div style={{ background: "linear-gradient(135deg,#1e40af,#3b82f6)", color: "#fff", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 30 }}>{(selectedTable.section || selectedTable.id[0]) === "G" ? "🌿" : "☕"}</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: "0.3px" }}>
+                  {selectedTable.name} — Today's Daily Profit & Orders
+                </span>
+                <span style={{ background: "rgba(255,255,255,0.2)", fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 12 }}>
+                  Section {selectedTable.section || selectedTable.id[0]}
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 2, display: "flex", alignItems: "center", gap: 10 }}>
+                <span>{selStats.orders.length} Orders from Morning ({selStats.orders[0]?.time || "08:15 AM"}) to Night ({selStats.orders[selStats.orders.length - 1]?.time || "09:45 PM"})</span>
+                <span>·</span>
+                <span style={{ fontWeight: 800 }}>🪑 {selectedTable.seats || 4} Seats Capacity</span>
+                <button
+                  onClick={() => {
+                    setEditSeatCount(selectedTable.seats || 4);
+                    setShowEditSeatModal(true);
+                  }}
+                  style={{ background: "#ffffff", color: "#1d4ed8", border: "none", padding: "2px 7px", borderRadius: 4, fontSize: 11, fontWeight: 800, cursor: "pointer" }}
+                >
+                  ✏️ Edit Extra Seat
+                </button>
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11.5, opacity: 0.85 }}>Today's Total Profit for {selectedTable.name}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: "#ffffff", textShadow: "0 2px 8px rgba(0,0,0,0.2)" }}>
+              ₹{selStats.totalProfit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
 
-      <div className="table-income-cards-grid">
-        {displayTables.map((t) => {
-          const stats = getTableStats(t);
-          const percentage = totalIncome > 0 ? ((stats.totalRupees / totalIncome) * 100).toFixed(1) : "0.0";
-          const hasActive = stats.activeRupees > 0;
+        {/* Selected Table KPI Summary Strip */}
+        <div style={{ padding: "16px 20px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+            
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>🛒 Total Items Sold Today</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "#1d4ed8", marginTop: 2 }}>{selStats.totalItems} Items</div>
+              <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Across {selStats.orders.length} daily orders</div>
+            </div>
 
-          return (
-            <div key={t.id} className={`table-money-card ${hasActive ? "has-active" : ""}`}>
-              <div className="card-top-row">
-                <div className="table-title-area">
-                  <span className="table-icon-pill">🪑</span>
-                  <div>
-                    <h4 className="table-card-name">{t.name}</h4>
-                    <span className="table-seat-count">{t.seats} Seater Dining Table</span>
+            <div style={{ background: PAY_BG["Cash"], border: `1.5px solid ${PAY_BORDER["Cash"]}`, borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: PAY_COLORS["Cash"] }}>💵 Profit from Cash</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: PAY_COLORS["Cash"], marginTop: 2 }}>
+                ₹{selStats.cashProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}
+              </div>
+              <div style={{ fontSize: 10.5, color: PAY_COLORS["Cash"] }}>{selStats.cashOrdersCount} full Cash bills</div>
+            </div>
+
+            <div style={{ background: PAY_BG["GPay"], border: `1.5px solid ${PAY_BORDER["GPay"]}`, borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: PAY_COLORS["GPay"] }}>📱 Profit from GPay</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: PAY_COLORS["GPay"], marginTop: 2 }}>
+                ₹{selStats.gpayProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}
+              </div>
+              <div style={{ fontSize: 10.5, color: PAY_COLORS["GPay"] }}>{selStats.gpayOrdersCount} full GPay bills</div>
+            </div>
+
+            <div style={{ background: PAY_BG["50/50"], border: `1.5px solid ${PAY_BORDER["50/50"]}`, borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: PAY_COLORS["50/50"] }}>⚖️ 50/50 Split Orders</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: PAY_COLORS["50/50"], marginTop: 2 }}>
+                ₹{selStats.fiftyFiftyProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}
+              </div>
+              <div style={{ fontSize: 10.5, color: PAY_COLORS["50/50"] }}>{selStats.fiftyOrdersCount} bills (50% Cash + 50% GPay)</div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── ORDERS FROM MORNING TO NIGHT (BILLED FORMAT, NO EDIT BUTTONS) ── */}
+        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+              <span>📋</span> All {selStats.orders.length} Billed Orders for {selectedTable.name} (Morning to Night):
+            </div>
+            <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
+              {selectedTable.name} · Section {selectedTable.section || selectedTable.id[0]} ({selStats.orders.length} total orders)
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {selStats.orders.map((ord) => {
+              const pay = ord.payMethod;
+              const halfProfit = ord.profit / 2;
+
+              return (
+                <div
+                  key={ord.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    transition: "all 0.15s"
+                  }}
+                >
+                  {/* Row 1: Order #, Time, Label, Profit */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ background: "#0f172a", color: "#ffffff", fontWeight: 800, fontSize: 11, padding: "3px 8px", borderRadius: 6 }}>
+                        Order #{ord.orderNum}
+                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ fontSize: 16 }}>{ord.icon}</span>
+                        <span style={{ fontWeight: 900, fontSize: 14, color: "#0f172a" }}>{ord.time}</span>
+                        <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>· {ord.label}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", background: "#dbeafe", padding: "2px 8px", borderRadius: 6 }}>
+                        {ord.itemsCount} item{ord.itemsCount !== 1 ? "s" : ""}
+                      </span>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontWeight: 900, fontSize: 16, color: "#0f172a" }}>
+                          ₹{ord.profit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                        <span style={{ fontSize: 10.5, color: "#64748b", marginLeft: 4 }}>profit</span>
+                      </div>
+                    </div>
+
                   </div>
-                </div>
-                <div className={`table-status-pill ${hasActive ? "occupied" : "settled"}`}>
-                  {hasActive ? "🔵 Active Order" : "🟢 Free / Settled"}
-                </div>
-              </div>
 
-              {/* Big Rupees Highlight */}
-              <div className="table-card-rupees-box">
-                <span className="rupees-box-label">TOTAL INCOME FROM {t.name.toUpperCase()}</span>
-                <div className="rupees-box-amount">
-                  ₹{stats.totalRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </div>
-                <div className="rupees-box-share">
-                  <span>Share of total floor revenue: <b>{percentage}%</b></span>
-                </div>
-              </div>
-
-              {/* Breakdown: Active vs Settled */}
-              <div className="table-card-breakdown">
-                <div className="breakdown-item">
-                  <span>Settled / Paid:</span>
-                  <b>₹{stats.settledRupees.toFixed(2)}</b>
-                </div>
-                <div className="breakdown-item">
-                  <span>Active Live Bill:</span>
-                  <b style={{ color: hasActive ? "#1d4ed8" : "inherit" }}>
-                    ₹{stats.activeRupees.toFixed(2)}
-                  </b>
-                </div>
-              </div>
-
-              {/* Active Order Items List (if running) */}
-              {hasActive && stats.activeOrder.length > 0 && (
-                <div className="table-card-active-items">
-                  <span className="active-items-label">Current Running Items:</span>
-                  <div className="active-items-tags">
-                    {stats.activeOrder.map((it, idx) => (
-                      <span key={idx} className="active-item-tag">
-                        {it[1]}x {it[0]} (₹{(it[1] * it[2]).toFixed(0)})
+                  {/* Row 2: Items Sold chips */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginRight: 2 }}>Items:</span>
+                    {ord.items.map((it, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          fontSize: 11.5,
+                          background: "#f1f5f9",
+                          color: "#1e293b",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: 6,
+                          padding: "2px 8px",
+                          fontWeight: 600,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4
+                        }}
+                      >
+                        <b style={{ color: "#2563eb" }}>{it[1]}×</b> {it[0]} <span style={{ color: "#64748b", fontSize: 10.5 }}>₹{it[1] * it[2]}</span>
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
 
-              {/* Card Actions: Settle bill or Add test order */}
-              <div className="table-card-actions">
-                {hasActive ? (
+                  {/* Row 3: Finalized Bill Payment Format (Clean, No Edit Buttons) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, paddingTop: 6, borderTop: "1px dashed #e2e8f0" }}>
+                    
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Bill Payment:</span>
+                      
+                      <span
+                        style={{
+                          background: PAY_BG[pay],
+                          border: `1.5px solid ${PAY_BORDER[pay]}`,
+                          color: PAY_COLORS[pay],
+                          fontSize: 11.5,
+                          fontWeight: 900,
+                          padding: "3px 10px",
+                          borderRadius: 6,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5
+                        }}
+                      >
+                        <span>{PAY_ICONS[pay]}</span>
+                        <span>{pay}</span>
+                      </span>
+
+                      {pay === "50/50" && (
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: "#92400e", background: "#fef3c7", border: "1px solid #fde68a", padding: "3px 9px", borderRadius: 6 }}>
+                          💵 ₹{halfProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })} Cash + 📱 ₹{halfProfit.toLocaleString("en-IN", { minimumFractionDigits: 1 })} GPay
+                        </span>
+                      )}
+                      {pay === "Cash" && (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#166534", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 9px", borderRadius: 6 }}>
+                          100% Cash Paid: ₹{ord.profit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}
+                        </span>
+                      )}
+                      {pay === "GPay" && (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#6b21a8", background: "#faf5ff", border: "1px solid #e9d5ff", padding: "3px 9px", borderRadius: 6 }}>
+                          100% GPay Paid: ₹{ord.profit.toLocaleString("en-IN", { minimumFractionDigits: 1 })}
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span>✓</span>
+                      <span>Settled Bill</span>
+                    </div>
+
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ── MODAL 1: ADD EXTRA TABLE (G OR C SECTION) ── */}
+      {showAddTableModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowAddTableModal(false)}>
+          <div style={{ background: "#ffffff", borderRadius: 12, width: "100%", maxWidth: 440, padding: "20px 24px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontWeight: 900, fontSize: 16, color: "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
+                <span>➕</span> Add Extra Table (Supplier Controls)
+              </div>
+              <button onClick={() => setShowAddTableModal(false)} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "#64748b" }}>✕</button>
+            </div>
+
+            <form onSubmit={handleAddTable} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6 }}>
+                  Select Table Section:
+                </label>
+                <div style={{ display: "flex", gap: 10 }}>
                   <button
                     type="button"
-                    className="btn-card-settle"
-                    onClick={() => handleSettleTable(t.id)}
-                    title={`Settle running bill of ₹${stats.activeRupees.toFixed(2)} and add to ${t.name} total income`}
+                    onClick={() => setNewTableSection("G")}
+                    style={{ flex: 1, padding: "8px", borderRadius: 8, border: newTableSection === "G" ? "2px solid #16a34a" : "1px solid #cbd5e1", background: newTableSection === "G" ? "#dcfce7" : "#fff", fontWeight: 800, color: newTableSection === "G" ? "#166534" : "#475569", cursor: "pointer" }}
                   >
-                    <span>🧾 Settle Bill (₹{stats.activeRupees.toFixed(2)}) ➔</span>
+                    🌿 G Section ({gCount} existing)
                   </button>
-                ) : (
                   <button
                     type="button"
-                    className="btn-card-add-test"
-                    onClick={() => handleAddSampleOrder(t.id)}
-                    title="Add sample order (+₹180) to test live rupees calculation"
+                    onClick={() => setNewTableSection("C")}
+                    style={{ flex: 1, padding: "8px", borderRadius: 8, border: newTableSection === "C" ? "2px solid #0284c7" : "1px solid #cbd5e1", background: newTableSection === "C" ? "#e0f2fe" : "#fff", fontWeight: 800, color: newTableSection === "C" ? "#0369a1" : "#475569", cursor: "pointer" }}
                   >
-                    <span>+ Add Quick Order (+₹180)</span>
+                    ☕ C Section ({cCount} existing)
                   </button>
-                )}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6 }}>
+                  Table Name (Optional, auto-names Table {newTableSection}{tables.filter(t => (t.section || t.id[0]) === newTableSection).length + 1}):
+                </label>
+                <input
+                  type="text"
+                  placeholder={`e.g. Table ${newTableSection}${tables.filter(t => (t.section || t.id[0]) === newTableSection).length + 1}`}
+                  value={newTableName}
+                  onChange={(e) => setNewTableName(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1.5px solid #cbd5e1", fontSize: 13, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6 }}>
+                  Initial Seating Capacity:
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[2, 4, 6, 8, 10].map((seats) => (
+                    <button
+                      key={seats}
+                      type="button"
+                      onClick={() => setNewTableSeats(seats)}
+                      style={{ flex: 1, padding: "6px", borderRadius: 6, border: newTableSeats === seats ? "2px solid #2563eb" : "1px solid #cbd5e1", background: newTableSeats === seats ? "#dbeafe" : "#fff", fontWeight: 800, color: newTableSeats === seats ? "#1d4ed8" : "#475569", cursor: "pointer" }}
+                    >
+                      {seats} seats
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddTableModal(false)}
+                  style={{ padding: "8px 14px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: "#059669", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
+                >
+                  ✓ Confirm & Add Table
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: EDIT EXTRA SEATS FOR TABLE ── */}
+      {showEditSeatModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowEditSeatModal(false)}>
+          <div style={{ background: "#ffffff", borderRadius: 12, width: "100%", maxWidth: 380, padding: "20px 24px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontWeight: 900, fontSize: 16, color: "#0f172a" }}>
+                🪑 Edit Extra Seats for {selectedTable.name}
+              </div>
+              <button onClick={() => setShowEditSeatModal(false)} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "#64748b" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 12, color: "#64748b" }}>
+                Adjust table capacity or add extra chairs/seats for walk-in guests:
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  onClick={() => setEditSeatCount(prev => Math.max(1, prev - 1))}
+                  style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #cbd5e1", background: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer" }}
+                >
+                  -
+                </button>
+                <div style={{ textAlign: "center", minWidth: 80 }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#1d4ed8" }}>{editSeatCount}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Total Seats</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditSeatCount(prev => prev + 1)}
+                  style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #16a34a", background: "#dcfce7", color: "#166534", fontSize: 18, fontWeight: 900, cursor: "pointer" }}
+                >
+                  +
+                </button>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditSeatModal(false)}
+                  style={{ padding: "8px 14px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomSeats(selectedTable.id)}
+                  style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: "#1d4ed8", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
+                >
+                  ✓ Save Seats
+                </button>
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Complete Data Table of Table Income */}
-      <div className="table-summary-sheet-card">
-        <div className="sheet-card-header">
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)" }}>
-            📋 Complete Table Revenue Ledger
-          </h3>
-          <small style={{ color: "var(--mut)", fontSize: 13 }}>
-            Full financial breakdown per table
-          </small>
+          </div>
         </div>
+      )}
 
-        <div className="table-responsive-wrapper">
-          <table className="income-ledger-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Table Name</th>
-                <th>Capacity</th>
-                <th>Current Status</th>
-                <th style={{ textAlign: "right" }}>Active Running (₹)</th>
-                <th style={{ textAlign: "right" }}>Settled Paid (₹)</th>
-                <th style={{ textAlign: "right" }}>Total Rupees (₹)</th>
-                <th style={{ textAlign: "right" }}>Revenue Share</th>
-                <th style={{ textAlign: "center" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tables.map((t, index) => {
-                const stats = getTableStats(t);
-                const percentage = totalIncome > 0 ? ((stats.totalRupees / totalIncome) * 100).toFixed(1) : "0.0";
-                const hasActive = stats.activeRupees > 0;
-
-                return (
-                  <tr key={t.id} className={hasActive ? "row-active-bill" : ""}>
-                    <td><b>{index + 1}</b></td>
-                    <td>
-                      <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span>🪑</span>
-                        <span>{t.name}</span>
-                      </span>
-                    </td>
-                    <td>{t.seats} Guests</td>
-                    <td>
-                      <span className={`ledger-status-pill ${hasActive ? "occ" : "free"}`}>
-                        {hasActive ? "🔵 Active Order" : "🟢 Free / Settled"}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right", color: hasActive ? "#1d4ed8" : "#64748b", fontWeight: hasActive ? 700 : 500 }}>
-                      ₹{stats.activeRupees.toFixed(2)}
-                    </td>
-                    <td style={{ textAlign: "right", color: "#059669", fontWeight: 600 }}>
-                      ₹{stats.settledRupees.toFixed(2)}
-                    </td>
-                    <td style={{ textAlign: "right", color: "#0f172a", fontWeight: 800, fontSize: 14 }}>
-                      ₹{stats.totalRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 600 }}>
-                      {percentage}%
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      {hasActive ? (
-                        <button
-                          type="button"
-                          className="ledger-settle-btn"
-                          onClick={() => handleSettleTable(t.id)}
-                          title="Settle bill"
-                        >
-                          Settle ₹{stats.activeRupees.toFixed(0)}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="ledger-add-btn"
-                          onClick={() => handleAddSampleOrder(t.id)}
-                          title="Add test item"
-                        >
-                          + Order
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="ledger-total-row">
-                <td colSpan="4">
-                  <b>GRAND TOTAL (ALL {tables.length} TABLES)</b>
-                </td>
-                <td style={{ textAlign: "right", fontWeight: 800, color: "#1d4ed8" }}>
-                  ₹{totalActiveIncome.toFixed(2)}
-                </td>
-                <td style={{ textAlign: "right", fontWeight: 800, color: "#059669" }}>
-                  ₹{totalSettledIncome.toFixed(2)}
-                </td>
-                <td style={{ textAlign: "right", fontWeight: 900, fontSize: 17, color: "#0f172a" }}>
-                  ₹{totalIncome.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </td>
-                <td style={{ textAlign: "right", fontWeight: 800 }}>
-                  100%
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ---------- App (routes) ---------- */
+
+/* ---------- Supplier Portal (Supplier Plays Main Role: Kitchen Messages Dispatch, 10 Tables 5 G + 5 C, Extra Table & Extra Seat, Stock) ---------- */
+function SupplierPortal({ go, sub, tables, setTables, currentUser }) {
+  const [activeTab, setActiveTab] = useState("floor"); // "floor" | "stock"
+  const [kitchenMessages, setKitchenMessages] = useState(INITIAL_KITCHEN_MESSAGES);
+  const [showKitchenMsgBox, setShowKitchenMsgBox] = useState(true);
+  const [notificationToast, setNotificationToast] = useState(null);
+  const [sectionFilter, setSectionFilter] = useState("all"); // "all" | "G" | "C"
+
+  // Add Extra Table state
+  const [showAddTableModal, setShowAddTableModal] = useState(false);
+  const [newTableSection, setNewTableSection] = useState("G");
+  const [newTableSeats, setNewTableSeats] = useState(4);
+  const [newTableName, setNewTableName] = useState("");
+
+  // Edit Extra Seat state
+  const [showEditSeatModal, setShowEditSeatModal] = useState(false);
+  const [selectedTableForSeat, setSelectedTableForSeat] = useState(null);
+  const [editSeatCount, setEditSeatCount] = useState(4);
+
+  // Supplier action: Send Kitchen message to Admin
+  const handleSendToAdmin = (msgId) => {
+    const now = new Date();
+    const timeStr = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+    
+    let sentItemInfo = "";
+    setKitchenMessages(prev => prev.map(m => {
+      if (m.id === msgId) {
+        sentItemInfo = `${m.tableName}: ${m.items.map(it => `${it[1]}× ${it[0]}`).join(", ")}`;
+        return { ...m, sentToAdmin: true, sentToAdminTime: timeStr };
+      }
+      return m;
+    }));
+
+    setNotificationToast(`👑 Sent to Admin! Supplier forwarded: ${sentItemInfo}`);
+    setTimeout(() => setNotificationToast(null), 5000);
+  };
+
+  // Supplier action: Add Extra Table
+  const handleAddTable = (e) => {
+    e?.preventDefault();
+    const countInSection = tables.filter(t => (t.section || t.id[0]) === newTableSection).length;
+    const nextNum = countInSection + 1;
+    const tableId = `${newTableSection}${nextNum}`;
+    const tableName = newTableName.trim() || `Table ${tableId}`;
+
+    const newTableObj = {
+      id: tableId,
+      name: tableName,
+      section: newTableSection,
+      seats: Number(newTableSeats) || 4,
+      status: "Available",
+      guests: 0,
+      seatedAt: "—",
+      order: [],
+      waiter: "Karthik",
+      qrCount: 0,
+      settledIncome: 0,
+      payMethod: "Cash"
+    };
+
+    setTables(prev => [...prev, newTableObj]);
+    setShowAddTableModal(false);
+    setNewTableName("");
+    setNotificationToast(`✅ Extra Table "${tableName}" (${newTableSeats} seats) successfully added to Section ${newTableSection}!`);
+    setTimeout(() => setNotificationToast(null), 4000);
+  };
+
+  // Supplier action: Quick +/- Seats
+  const handleUpdateSeats = (tableId, delta) => {
+    setTables(prev => prev.map(t => {
+      if (t.id === tableId) {
+        const newSeats = Math.max(1, (Number(t.seats) || 2) + delta);
+        return { ...t, seats: newSeats };
+      }
+      return t;
+    }));
+  };
+
+  const handleOpenEditSeat = (t) => {
+    setSelectedTableForSeat(t);
+    setEditSeatCount(t.seats || 4);
+    setShowEditSeatModal(true);
+  };
+
+  const handleSaveCustomSeats = (tableId) => {
+    setTables(prev => prev.map(t => {
+      if (t.id === tableId) {
+        return { ...t, seats: Number(editSeatCount) || t.seats };
+      }
+      return t;
+    }));
+    setShowEditSeatModal(false);
+    setNotificationToast(`✅ Seats updated to ${editSeatCount} for ${selectedTableForSeat?.name || "Table"}!`);
+    setTimeout(() => setNotificationToast(null), 3000);
+  };
+
+  const gCount = tables.filter(t => (t.section || t.id[0]) === "G").length;
+  const cCount = tables.filter(t => (t.section || t.id[0]) === "C").length;
+  const pendingKitchenMsgs = kitchenMessages.filter(m => !m.sentToAdmin).length;
+
+  const filteredTables = tables.filter(t => {
+    if (sectionFilter === "all") return true;
+    return (t.section || t.id[0]) === sectionFilter;
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0" }}>
+      {/* Toast Notification */}
+      {notificationToast && (
+        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, background: "#0f172a", color: "#ffffff", padding: "12px 18px", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", gap: 10, border: "1.5px solid #3b82f6" }}>
+          <span style={{ fontSize: 18 }}>📢</span>
+          <span style={{ fontWeight: 800, fontSize: 13 }}>{notificationToast}</span>
+        </div>
+      )}
+
+      {/* SUPPLIER FLOOR COMMAND (Main Role) BANNER */}
+      <div className="card" style={{ padding: "16px 20px", background: "linear-gradient(135deg,#064e3b,#047857)", color: "#ffffff", borderRadius: 12, border: "1.5px solid #10b981", boxShadow: "0 6px 18px rgba(6,78,59,0.2)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ fontSize: 32 }}>🚚</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: "0.5px" }}>
+                  SUPPLIER FLOOR COMMAND (Main Role)
+                </span>
+                <span style={{ background: "#34d399", color: "#064e3b", fontWeight: 900, fontSize: 11, padding: "2px 8px", borderRadius: 12 }}>
+                  ACTIVE · {currentUser?.name || "Supplier"}
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, color: "#d1fae5", marginTop: 3 }}>
+                Supplier receives Kitchen updates with exact item details, manages extra tables/seats, and forwards alerts to Admin.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => {
+                setNewTableName("");
+                setShowAddTableModal(true);
+              }}
+              style={{ background: "#ffffff", color: "#065f46", border: "none", padding: "9px 16px", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}
+            >
+              <span>➕ Add Extra Table</span>
+            </button>
+            <button
+              onClick={() => setShowKitchenMsgBox(!showKitchenMsgBox)}
+              style={{ background: pendingKitchenMsgs > 0 ? "#f59e0b" : "rgba(255,255,255,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.3)", padding: "9px 16px", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span>👨‍🍳 Kitchen Messages ({kitchenMessages.length})</span>
+              {pendingKitchenMsgs > 0 && (
+                <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, padding: "1px 6px", borderRadius: 10, fontWeight: 900 }}>
+                  {pendingKitchenMsgs} to Admin
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs: Floor Dispatch & Tables VS Raw Material Stock & Vendors */}
+      <div style={{ display: "flex", gap: 8, borderBottom: "2px solid #e2e8f0", paddingBottom: 6 }}>
+        <button
+          onClick={() => setActiveTab("floor")}
+          style={{
+            background: activeTab === "floor" ? "#064e3b" : "#f1f5f9",
+            color: activeTab === "floor" ? "#ffffff" : "#475569",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          <span>🚚 Floor & Kitchen Dispatch (10 Tables)</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("stock")}
+          style={{
+            background: activeTab === "stock" ? "#064e3b" : "#f1f5f9",
+            color: activeTab === "stock" ? "#ffffff" : "#475569",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          <span>📦 Raw Material Stock & Vendors</span>
+        </button>
+      </div>
+
+      {activeTab === "floor" ? (
+        <>
+          {/* Kitchen Messages Received by Supplier (Know the items & Send to Admin) */}
+          {showKitchenMsgBox && (
+            <div className="card" style={{ padding: "16px 20px", background: "#f8fafc", border: "2px solid #cbd5e1", borderRadius: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>👨‍🍳 ➔ 🚚 ➔ 👑</span>
+                  <span style={{ fontWeight: 900, fontSize: 15, color: "#1e293b" }}>
+                    Kitchen Messages Received by Supplier (Know the items & Send to Admin):
+                  </span>
+                </div>
+                <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
+                  {pendingKitchenMsgs} pending to forward to Admin · {kitchenMessages.length - pendingKitchenMsgs} already forwarded
+                </span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
+                {kitchenMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      background: "#ffffff",
+                      border: msg.sentToAdmin ? "1.5px solid #86efac" : "1.5px solid #fde68a",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.04)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: "#0f172a" }}>🪑 {msg.tableName}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, background: (msg.section || msg.tableId[0]) === "G" ? "#dcfce7" : "#e0f2fe", color: (msg.section || msg.tableId[0]) === "G" ? "#166534" : "#0369a1", padding: "1px 6px", borderRadius: 4 }}>
+                          Section {msg.section || msg.tableId[0]}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>⏰ {msg.time}</span>
+                    </div>
+
+                    {/* What are the things: Exact items from kitchen */}
+                    <div style={{ background: "#f1f5f9", borderRadius: 6, padding: "6px 10px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", marginBottom: 3 }}>
+                        🛒 Things from Kitchen (Items):
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {msg.items.map((it, idx) => (
+                          <span key={idx} style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#1e293b" }}>
+                            <b style={{ color: "#2563eb" }}>{it[1]}×</b> {it[0]}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chef note */}
+                    <div style={{ fontSize: 11.5, color: "#334155", fontStyle: "italic" }}>
+                      👨‍🍳 <b>Kitchen Note:</b> "{msg.chefNote}"
+                    </div>
+
+                    {/* Action: Send to Admin */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: "1px dashed #e2e8f0" }}>
+                      {msg.sentToAdmin ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#15803d", fontSize: 11, fontWeight: 800 }}>
+                          <span>✅</span>
+                          <span>Sent to Admin ({msg.sentToAdminTime})</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 11, color: "#d97706", fontWeight: 700 }}>
+                          ⏳ Pending Supplier Review
+                        </span>
+                      )}
+
+                      {!msg.sentToAdmin ? (
+                        <button
+                          onClick={() => handleSendToAdmin(msg.id)}
+                          style={{ background: "#1d4ed8", color: "#ffffff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, transition: "0.15s" }}
+                        >
+                          <span>📤 Send to Admin</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSendToAdmin(msg.id)}
+                          style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Resend to Admin
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 10 Tables Management Grid (5 G and 5 C) */}
+          <div className="card" style={{ padding: "16px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>🪑 10 Tables Floor Management</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>(5 Tables Called G & 5 Tables Called C)</span>
+                </h3>
+                <small style={{ color: "#64748b" }}>
+                  Supplier manages tables: add extra tables, increase seats (+1), or customize seat capacities.
+                </small>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => setSectionFilter("all")}
+                  style={{ background: sectionFilter === "all" ? "#1e293b" : "#f1f5f9", color: sectionFilter === "all" ? "#fff" : "#475569", border: "1px solid #cbd5e1", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                >
+                  All Tables ({tables.length})
+                </button>
+                <button
+                  onClick={() => setSectionFilter("G")}
+                  style={{ background: sectionFilter === "G" ? "#15803d" : "#f0fdf4", color: sectionFilter === "G" ? "#fff" : "#166534", border: "1.5px solid #86efac", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                >
+                  🌿 5 Tables Called G ({gCount})
+                </button>
+                <button
+                  onClick={() => setSectionFilter("C")}
+                  style={{ background: sectionFilter === "C" ? "#0369a1" : "#f0f9ff", color: sectionFilter === "C" ? "#fff" : "#0369a1", border: "1.5px solid #bae6fd", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                >
+                  ☕ 5 Tables Called C ({cCount})
+                </button>
+                <button
+                  onClick={() => {
+                    setNewTableName("");
+                    setShowAddTableModal(true);
+                  }}
+                  style={{ background: "#059669", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  <span>➕ Add Extra Table</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              {filteredTables.map(t => {
+                const isG = (t.section || t.id[0]) === "G";
+                return (
+                  <div
+                    key={t.id}
+                    style={{
+                      background: "#ffffff",
+                      border: isG ? "1.5px solid #86efac" : "1.5px solid #bae6fd",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.04)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 16 }}>{isG ? "🌿" : "☕"}</span>
+                        <b style={{ fontSize: 14, color: "#1e293b" }}>{t.name}</b>
+                      </div>
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background: isG ? "#dcfce7" : "#e0f2fe",
+                        color: isG ? "#166534" : "#0369a1",
+                        padding: "2px 7px",
+                        borderRadius: 4
+                      }}>
+                        Section {t.section || t.id[0]}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+                      <span style={{ color: "#64748b" }}>🪑 Seating Capacity:</span>
+                      <b style={{ color: "#0f172a", fontSize: 13 }}>{t.seats || 4} Seats</b>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5, color: "#64748b" }}>
+                      <span>👤 Assigned: <b>{t.waiter || "Staff"}</b></span>
+                      <span style={{ color: t.status === "Occupied" ? "#dc2626" : "#16a34a", fontWeight: 700 }}>● {t.status || "Available"}</span>
+                    </div>
+
+                    {/* Seat Adjustment Controls for Supplier */}
+                    <div style={{ display: "flex", gap: 6, paddingTop: 6, borderTop: "1px dashed #e2e8f0" }}>
+                      <button
+                        onClick={() => handleUpdateSeats(t.id, 1)}
+                        style={{ flex: 1, background: "#f0fdf4", border: "1px solid #86efac", color: "#15803d", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                        title="Quick add +1 extra seat for walk-in"
+                      >
+                        <span>+1 Seat</span>
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditSeat(t)}
+                        style={{ flex: 1.2, background: "#f1f5f9", border: "1px solid #cbd5e1", color: "#334155", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                      >
+                        <span>✏️ Edit Seat</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Stock & Vendors Tab for Supplier */
+        <Glossary go={go} sub={sub} currentUser={currentUser} />
+      )}
+
+      {/* Add Extra Table Modal */}
+      {showAddTableModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#ffffff", borderRadius: 14, padding: "24px 28px", width: "90%", maxWidth: 420, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 22 }}>➕</span>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: "#1e293b" }}>Add Extra Table (Supplier)</h3>
+              </div>
+              <button onClick={() => setShowAddTableModal(false)} style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer", color: "#64748b" }}>✕</button>
+            </div>
+
+            <form onSubmit={handleAddTable} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", display: "block", marginBottom: 6 }}>Section (5 called G or 5 called C):</label>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: newTableSection === "G" ? "2px solid #16a34a" : "1px solid #cbd5e1", borderRadius: 8, background: newTableSection === "G" ? "#f0fdf4" : "#ffffff", cursor: "pointer", fontWeight: 700, fontSize: 12.5 }}>
+                    <input type="radio" name="sec" value="G" checked={newTableSection === "G"} onChange={() => setNewTableSection("G")} />
+                    <span>🌿 Section G</span>
+                  </label>
+                  <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: newTableSection === "C" ? "2px solid #0284c7" : "1px solid #cbd5e1", borderRadius: 8, background: newTableSection === "C" ? "#f0f9ff" : "#ffffff", cursor: "pointer", fontWeight: 700, fontSize: 12.5 }}>
+                    <input type="radio" name="sec" value="C" checked={newTableSection === "C"} onChange={() => setNewTableSection("C")} />
+                    <span>☕ Section C</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", display: "block", marginBottom: 6 }}>Custom Table Name (optional):</label>
+                <input
+                  type="text"
+                  placeholder={`e.g. Table ${newTableSection}${tables.filter(t => (t.section || t.id[0]) === newTableSection).length + 1}`}
+                  value={newTableName}
+                  onChange={(e) => setNewTableName(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", display: "block", marginBottom: 6 }}>Initial Seating Capacity:</label>
+                <select
+                  value={newTableSeats}
+                  onChange={(e) => setNewTableSeats(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, boxSizing: "border-box" }}
+                >
+                  <option value={2}>2 Seats (Duo)</option>
+                  <option value={4}>4 Seats (Standard)</option>
+                  <option value={6}>6 Seats (Family)</option>
+                  <option value={8}>8 Seats (Group Banquet)</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setShowAddTableModal(false)} style={{ flex: 1, background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "10px", borderRadius: 8, fontWeight: 700, cursor: "pointer", color: "#475569" }}>
+                  Cancel
+                </button>
+                <button type="submit" style={{ flex: 1.5, background: "#059669", color: "#ffffff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 800, cursor: "pointer" }}>
+                  Confirm & Add Table
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Extra Seat Modal */}
+      {showEditSeatModal && selectedTableForSeat && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#ffffff", borderRadius: 14, padding: "24px 28px", width: "90%", maxWidth: 380, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>✏️</span>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: "#1e293b" }}>Edit Extra Seat ({selectedTableForSeat.name})</h3>
+              </div>
+              <button onClick={() => setShowEditSeatModal(false)} style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer", color: "#64748b" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 12.5, color: "#64748b" }}>
+                Adjust seat capacity for walk-in extra guests:
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "12px 0" }}>
+                <button
+                  type="button"
+                  onClick={() => setEditSeatCount(c => Math.max(1, Number(c) - 1))}
+                  style={{ width: 42, height: 42, borderRadius: "50%", background: "#f1f5f9", border: "1.5px solid #cbd5e1", fontSize: 20, fontWeight: 900, cursor: "pointer" }}
+                >
+                  -
+                </button>
+                <div style={{ fontSize: 32, fontWeight: 900, color: "#1e293b", minWidth: 60, textAlign: "center" }}>
+                  {editSeatCount}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditSeatCount(c => Number(c) + 1)}
+                  style={{ width: 42, height: 42, borderRadius: "50%", background: "#f0fdf4", border: "1.5px solid #86efac", color: "#16a34a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}
+                >
+                  +
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <button type="button" onClick={() => setShowEditSeatModal(false)} style={{ flex: 1, background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "10px", borderRadius: 8, fontWeight: 700, cursor: "pointer", color: "#475569" }}>
+                  Cancel
+                </button>
+                <button type="button" onClick={() => handleSaveCustomSeats(selectedTableForSeat.id)} style={{ flex: 1.5, background: "#1d4ed8", color: "#ffffff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 800, cursor: "pointer" }}>
+                  Save Seats
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [path, go] = useRoute();
   const [tables, setTables] = useState(TABLES0);
+  useEffect(() => {
+    if (tables.length !== TABLES0.length || (tables[0] && tables[0].id.startsWith("T"))) {
+      setTables(TABLES0);
+    }
+  }, []);
   const [kitchenOrders, setKitchenOrders] = useState(INITIAL_KITCHEN_ORDERS);
   const [liveNotification, setLiveNotification] = useState(null);
 
@@ -3077,7 +4054,7 @@ export default function App() {
     } else if (user.role === "kitchen") {
       go("/kitchen");
     } else if (user.role === "supplier") {
-      go("/glossary");
+      go("/supplier");
     } else {
       go("/");
     }
@@ -3114,7 +4091,8 @@ export default function App() {
       root === "review" && sub ? "/review" :
       root === "order" ? "/tables" :
       root === "kitchen" ? (currentUser.role === "kitchen" ? "/login" : "/tables") :
-      root === "glossary" && currentUser.role === "supplier" ? "/login" :
+      root === "supplier" ? (currentUser.role === "supplier" ? "/login" : "/") :
+      root === "glossary" && currentUser.role === "supplier" ? "/supplier" :
       "/"
     ) : null;
 
@@ -3166,6 +4144,16 @@ export default function App() {
           setTables={setTables}
         />
       );
+    } else if (root === "supplier") {
+      page = (
+        <SupplierPortal
+          go={go}
+          sub={sub}
+          tables={tables}
+          setTables={setTables}
+          currentUser={currentUser}
+        />
+      );
     } else {
       // Default route "/" (Home)
       if (currentUser.role === "kitchen") {
@@ -3179,7 +4167,15 @@ export default function App() {
           />
         );
       } else if (currentUser.role === "supplier") {
-        page = <Glossary go={go} sub={sub} currentUser={currentUser} />;
+        page = (
+          <SupplierPortal
+            go={go}
+            sub={sub}
+            tables={tables}
+            setTables={setTables}
+            currentUser={currentUser}
+          />
+        );
       } else {
         // Admin: Home page with REVIEW, GLOSSARY, TABLES (kitchen removed)
         page = <Home go={go} currentUser={currentUser} />;
@@ -3210,11 +4206,22 @@ const CSS = `
 .sd-wood{--blue:#1a73e8;--dk:#0b3a78;--green:#2e9e4a;--cream:#f8f3e8;--ink:#1f2a3a;--mut:#6b7a90;font-family:Roboto,"Segoe UI",Arial,sans-serif;color:var(--ink);min-height:100vh;padding:28px 16px;background:repeating-linear-gradient(95deg,#efc590 0 6px,#e8b87a 6px 9px,#f2cc9b 9px 18px,#e6b274 18px 20px)}
 .sd-wood *{box-sizing:border-box}
 .win{max-width:1180px;margin:0 auto;background:var(--cream);border-radius:10px;box-shadow:0 14px 30px rgba(80,45,10,.45);overflow:hidden}
-.bar{height:34px;background:linear-gradient(#d3dfea,#bccbdb);display:flex;justify-content:space-between;align-items:center;gap:4px;padding:0 6px}
-.wc{display:flex;gap:4px}
-.bk{border:0;background:#e4ecf4;color:#0b3a78;font:700 13px Roboto,Arial,sans-serif;padding:4px 12px;border-radius:4px;cursor:pointer;box-shadow:0 1px 2px #0003}
-.bar span{width:34px;height:22px;border-radius:4px;background:#e4ecf4;display:grid;place-items:center;font-size:13px;color:#2c4a6e;box-shadow:0 1px 2px #0003}
-.bar span.x{background:#ef8c8c;color:#d00;font-weight:700}
+.bar{min-height:38px;height:38px;background:linear-gradient(#d3dfea,#bccbdb);display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 10px;user-select:none}
+.wc{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.bk{border:0;background:#e4ecf4;color:#0b3a78;font:700 13px Roboto,Arial,sans-serif;padding:4px 12px;border-radius:4px;cursor:pointer;box-shadow:0 1px 2px #0003;white-space:nowrap;flex-shrink:0}
+.wc span{width:32px;height:22px;border-radius:4px;background:#e4ecf4;display:grid;place-items:center;font-size:13px;color:#2c4a6e;box-shadow:0 1px 2px #0003;cursor:pointer}
+.wc span.x{background:#ef8c8c;color:#d00;font-weight:700}
+.wc span:hover{filter:brightness(0.95)}
+.wc span.x:hover{background:#e53e3e;color:#fff}
+.cafe-window-title{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;font-weight:800;color:#0b3a78;letter-spacing:0.4px}
+.user-top-profile{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-role-badge{padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:800;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.user-role-badge.admin{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+.user-role-badge.supplier{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.user-role-badge.kitchen{background:#ffedd5;color:#c2410c;border:1px solid #fdba74}
+.user-display-name{font-size:12.5px;font-weight:700;color:#1e293b;white-space:nowrap}
+.user-logout-btn{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:3px 10px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:0.15s}
+.user-logout-btn:hover{background:#fecaca}
 .in{margin:12px;border:1px solid #e3dccb;border-radius:8px;padding:18px;min-height:600px}
 .home{display:flex;gap:30px;justify-content:center;align-items:center;min-height:560px;flex-wrap:wrap}
 .big,.nb{border:0;color:#fff;font-weight:800;cursor:pointer;background:linear-gradient(#58a4f8,#0b6fe3);box-shadow:inset 0 0 0 3px #ffffff55,0 5px 0 #0a4aa5,0 10px 14px #0004;display:flex;align-items:center;gap:16px;font-family:inherit}
