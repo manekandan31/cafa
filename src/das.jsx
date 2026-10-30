@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import QRCode from "./qr";
+import { supabase } from "./supabase";
 
 /* ---------- Tiny hash router: #/  #/review  #/review/day  #/glossary  #/glossary/stock  #/tables  #/order/:tableId ---------- */
 const useRoute = () => {
@@ -87,6 +89,45 @@ const TABLES0 = [
   { id: "C5", name: "Table C5", section: "C", seats: 8, status: "Occupied", guests: 4, seatedAt: "12:10 PM", order: [["Burger", 2, 220, "Staff"], ["Choco Shake", 2, 160, "QR"]], waiter: "Ramesh", qrCount: 2, settledIncome: 1350, payMethod: "50/50" }
 ];
 
+const INITIAL_TABLES = TABLES0.map((table) => ({
+  ...table,
+  status: "Free",
+  guests: 0,
+  seatedAt: "—"
+}));
+
+const normalizeTables = (saved) => {
+  if (!Array.isArray(saved) || saved.length === 0) return INITIAL_TABLES;
+  return saved.map((table, index) => ({
+    ...table,
+    status: table.status === "Occupied" ? "Occupied" : "Free",
+    sessionId: table.sessionId || null,
+    customer: table.customer || null,
+    orders: Array.isArray(table.orders) ? table.orders : [],
+    sessionHistory: Array.isArray(table.sessionHistory) ? table.sessionHistory : [],
+    displayName: table.displayName || `Table ${pad(index + 1)}`
+  }));
+};
+
+const tableLabel = (table, index = 0) => table.displayName || `Table ${pad(index + 1)}`;
+const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
+const validPhone = (phone) => /^\d{10,15}$/.test(normalizePhone(phone));
+const COLLECTION_INACTIVE_MESSAGE = "Collection is not started. Please click Start Collection to begin.";
+const calculateBill = (table) => {
+  const orders = table.orders || [];
+  const items = orders.flatMap((order) => order.items || []);
+  const merged = items.reduce((result, item) => {
+    const key = item.menuId || item.name;
+    const current = result[key] || { ...item, qty: 0 };
+    result[key] = { ...current, qty: current.qty + Number(item.qty || 0), price: Number(item.price || 0) };
+    return result;
+  }, {});
+  const lines = Object.values(merged).map((item) => ({ ...item, lineTotal: item.qty * item.price }));
+  const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
+  const tax = Math.round(subtotal * 0.05 * 100) / 100;
+  return { lines, subtotal, tax, discount: 0, total: subtotal + tax };
+};
+
 /* ---------- Initial Kitchen Order Tickets (KDS) ---------- */
 const INITIAL_KITCHEN_ORDERS = [
   {
@@ -151,7 +192,7 @@ function playKitchenDing() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.7);
-  } catch (e) {
+  } catch {
     // Ignore audio permission restrictions
   }
 }
@@ -195,65 +236,7 @@ const stockStatus = (s) => {
   return stock === 0 ? ["Out of Stock", "p-out"] : stock <= 12 ? ["Low Stock", "p-low"] : ["In Stock", "p-in"];
 };
 
-/* ---------- Realistic SVG QR Code Component ---------- */
-function QRCodeSVG({ value, size = 180 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 140 140" style={{ background: "#fff", padding: 8, borderRadius: 10, border: "2px solid #cbd5e1" }}>
-      {/* 3 Corner Position Detection Squares */}
-      <rect x="8" y="8" width="36" height="36" rx="4" fill="#0f172a" />
-      <rect x="14" y="14" width="24" height="24" rx="2" fill="#fff" />
-      <rect x="19" y="19" width="14" height="14" rx="2" fill="#0f172a" />
-
-      <rect x="96" y="8" width="36" height="36" rx="4" fill="#0f172a" />
-      <rect x="102" y="14" width="24" height="24" rx="2" fill="#fff" />
-      <rect x="107" y="19" width="14" height="14" rx="2" fill="#0f172a" />
-
-      <rect x="8" y="96" width="36" height="36" rx="4" fill="#0f172a" />
-      <rect x="14" y="102" width="24" height="24" rx="2" fill="#fff" />
-      <rect x="19" y="107" width="14" height="14" rx="2" fill="#0f172a" />
-
-      {/* Timing Patterns */}
-      <rect x="48" y="22" width="6" height="6" fill="#0f172a" />
-      <rect x="60" y="22" width="6" height="6" fill="#0f172a" />
-      <rect x="72" y="22" width="6" height="6" fill="#0f172a" />
-      <rect x="84" y="22" width="6" height="6" fill="#0f172a" />
-      <rect x="22" y="48" width="6" height="6" fill="#0f172a" />
-      <rect x="22" y="60" width="6" height="6" fill="#0f172a" />
-      <rect x="22" y="72" width="6" height="6" fill="#0f172a" />
-      <rect x="22" y="84" width="6" height="6" fill="#0f172a" />
-
-      {/* Data Blocks */}
-      <rect x="48" y="48" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="60" y="48" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="72" y="48" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="84" y="48" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="48" y="60" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="84" y="60" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="48" y="72" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="60" y="72" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="72" y="72" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="84" y="72" width="8" height="8" rx="1" fill="#1e293b" />
-      <rect x="48" y="88" width="6" height="6" fill="#1e293b" />
-      <rect x="62" y="88" width="6" height="6" fill="#1e293b" />
-      <rect x="76" y="88" width="6" height="6" fill="#1e293b" />
-      <rect x="96" y="60" width="6" height="6" fill="#1e293b" />
-      <rect x="110" y="60" width="6" height="6" fill="#1e293b" />
-      <rect x="122" y="72" width="6" height="6" fill="#1e293b" />
-      <rect x="100" y="96" width="8" height="8" fill="#1e293b" />
-      <rect x="116" y="96" width="8" height="8" fill="#1e293b" />
-      <rect x="100" y="112" width="8" height="8" fill="#1e293b" />
-      <rect x="116" y="112" width="8" height="8" fill="#1e293b" />
-      <rect x="52" y="116" width="6" height="6" fill="#1e293b" />
-      <rect x="68" y="116" width="6" height="6" fill="#1e293b" />
-      <rect x="84" y="116" width="6" height="6" fill="#1e293b" />
-
-      {/* Center Branding Circle with Coffee Logo */}
-      <circle cx="70" cy="70" r="15" fill="#1a73e8" stroke="#fff" strokeWidth="2" />
-      <text x="70" y="75" fontSize="13" textAnchor="middle" fill="#fff">☕</text>
-    </svg>
-  );
-}
-
+/* ---------- Real QR Code Component (separate file: ./QRCode.jsx) ---------- */
 /* ---------- Shared UI ---------- */
 function Window({ children, back, currentUser, onLogout }) {
   return (
@@ -393,7 +376,7 @@ function TableQRModal({ table, tables, onClose, onOpenMobileView, onOpenAllModal
               </div>
 
               <div className="tent-qr-wrapper">
-                <QRCodeSVG value={orderUrl} size={190} />
+                <QRCode value={orderUrl} size={190} />
               </div>
 
               <div className="tent-instructions">
@@ -423,7 +406,7 @@ function TableQRModal({ table, tables, onClose, onOpenMobileView, onOpenAllModal
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-                  <QRCodeSVG value={orderUrl} size={170} />
+                  <QRCode value={orderUrl} size={170} />
                 </div>
 
                 <div className="sticker-instructions">
@@ -551,7 +534,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "center", margin: "6px 0" }}>
-                    <QRCodeSVG value={tableOrderUrl} size={135} />
+                    <QRCode value={tableOrderUrl} size={135} />
                   </div>
 
                   <div className="sticker-instructions">
@@ -585,7 +568,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 }
 
 /* ---------- Customer Mobile Self-Ordering View (#/order/:tableId) ---------- */
-function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder }) {
+function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive }) {
   const currentTable = tables.find((t) => t.id === tableId) || tables[0] || { id: "T1", name: "Table 1" };
   const [selectedCat, setSelectedCat] = useState("All");
   const [cart, setCart] = useState({});
@@ -594,6 +577,25 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   const [orderNumber, setOrderNumber] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [lastSubmittedTicket, setLastSubmittedTicket] = useState(null);
+  const [customerName, setCustomerName] = useState(currentTable.customer?.name || "");
+  const [customerPhone, setCustomerPhone] = useState(currentTable.customer?.phone || "");
+  const [customerError, setCustomerError] = useState("");
+
+  useEffect(() => {
+    setTables((current) => current.map((table) => {
+      if (table.id !== currentTable.id || table.status === "Occupied") return table;
+      return {
+        ...table,
+        status: "Occupied",
+        sessionId: `SES-${Date.now()}-${table.id}`,
+        sessionHistory: table.sessionHistory || [],
+        orders: [],
+        customer: null,
+        guests: table.guests || 2,
+        seatedAt: table.seatedAt === "—" ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : table.seatedAt
+      };
+    }));
+  }, [currentTable.id, setTables, collectionActive]);
 
   const categories = ["All", "Hot Coffee", "Cold Beverages", "Snacks & Bites", "Bakery & Desserts"];
   const filteredMenu = MENU_ITEMS.filter((it) => selectedCat === "All" || it.cat === selectedCat);
@@ -631,71 +633,147 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     : lastSubmittedTicket;
   const currentStatus = activeTicket ? activeTicket.status : "new";
 
-  const handleSendOrder = () => {
-    if (cartItemsArray.length === 0) return;
+  const handleSendOrder = async () => {
+  if (cartItemsArray.length === 0) {
+    setCustomerError("Add at least one item before sending the order.");
+    return;
+  }
 
-    const ordNo = "KOT-" + Math.floor(1000 + Math.random() * 9000);
-    setOrderNumber(ordNo);
+  if (!customerName.trim() || !validPhone(customerPhone)) {
+    setCustomerError("Enter a name and a valid phone number (10–15 digits).");
+    return;
+  }
 
-    const now = new Date();
-    const timeStr = `${pad(now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12)}:${pad(now.getMinutes())} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+  if (
+    currentTable.customer &&
+    (
+      currentTable.customer.name.trim().toLowerCase() !== customerName.trim().toLowerCase() ||
+      normalizePhone(currentTable.customer.phone) !== normalizePhone(customerPhone)
+    )
+  ) {
+    setCustomerError(
+      "This table session belongs to another customer. Ask staff to close it before starting a new customer session."
+    );
+    return;
+  }
 
-    const newTicket = {
-      id: ordNo,
-      tableId: currentTable.id,
-      tableName: currentTable.name,
-      time: timeStr,
-      timestamp: Date.now(),
+  const ordNo = `KOT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+
+  const now = new Date();
+  const timeStr = `${pad(
+    now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12
+  )}:${pad(now.getMinutes())} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+
+  const newTicket = {
+    id: ordNo,
+    tableId: currentTable.id,
+    tableName: currentTable.name,
+    time: timeStr,
+    timestamp: Date.now(),
+    source: "QR Code",
+    items: cartItemsArray.map((it) => ({
+      name: it.name,
+      qty: it.qty,
+      price: it.price,
+      icon: it.icon || "☕",
+      done: false
+    })),
+    specialNotes: specialNotes.trim(),
+    customerName: customerName.trim(),
+    customerPhone: normalizePhone(customerPhone),
+    status: "new"
+  };
+
+  const orderRecord = {
+    id: ordNo,
+    kotNumber: ordNo,
+    tableId: currentTable.id,
+    sessionId: currentTable.sessionId,
+    createdAt: new Date().toISOString(),
+    customer: {
+      name: customerName.trim(),
+      phone: normalizePhone(customerPhone)
+    },
+    items: cartItemsArray.map((item) => ({
+      menuId: item.id,
+      name: item.name,
+      qty: item.qty,
+      price: item.price
+    })),
+    specialNotes: specialNotes.trim(),
+    status: "submitted"
+  };
+
+  // Send a kitchen-safe copy to Supabase for cross-device sync.
+  // Customer phone numbers remain in the private cafe_orders table.
+  const { error } = await supabase
+    .from("cafe_kitchen_orders")
+    .insert({
+      id: newTicket.id,
+      kot_number: newTicket.id,
+      table_id: newTicket.tableId,
+      table_name: newTicket.tableName,
+      items: newTicket.items,
+      special_notes: newTicket.specialNotes,
+      status: newTicket.status,
       source: "QR Code",
-      items: cartItemsArray.map((it) => ({
-        name: it.name,
-        qty: it.qty,
-        price: it.price,
-        icon: it.icon || "☕",
-        done: false
-      })),
-      specialNotes: specialNotes.trim(),
-      status: "new"
-    };
+      customer_name: customerName.trim(),
+      customer_phone: normalizePhone(customerPhone),
+      created_at: new Date(newTicket.timestamp).toISOString()
+    });
 
-    setLastSubmittedTicket(newTicket);
+  if (error) {
+    console.error("Supabase kitchen order error:", error);
+    setCustomerError("Unable to send order to the kitchen. Please try again.");
+    return;
+  }
 
-    // Send ticket to Kitchen Display System & trigger sound
-    if (onSendKitchenOrder) {
-      onSendKitchenOrder(newTicket, cartItemsArray);
-    } else {
-      playKitchenDing();
-    }
+  // Update local order state
+  setOrderNumber(ordNo);
+  setLastSubmittedTicket(newTicket);
 
-    // Update table running tab & occupied status
-    setTables(tables.map((t) => {
+  // Send ticket to kitchen
+  if (onSendKitchenOrder) {
+    onSendKitchenOrder(newTicket, cartItemsArray);
+  } else {
+    playKitchenDing();
+  }
+
+  // Update table running tab
+  setTables((currentTables) =>
+    currentTables.map((t) => {
       if (t.id === currentTable.id) {
-        const existingOrder = [...(t.order || [])];
-
-        cartItemsArray.forEach((it) => {
-          const exIdx = existingOrder.findIndex((x) => x[0] === it.name);
-          if (exIdx >= 0) {
-            existingOrder[exIdx] = [existingOrder[exIdx][0], existingOrder[exIdx][1] + it.qty, existingOrder[exIdx][2], "QR"];
-          } else {
-            existingOrder.push([it.name, it.qty, it.price, "QR"]);
-          }
-        });
-
         return {
           ...t,
           status: "Occupied",
-          seatedAt: t.status === "Occupied" ? t.seatedAt : timeStr,
+          customer: {
+            name: customerName.trim(),
+            phone: normalizePhone(customerPhone)
+          },
+          orders: [...(t.orders || []), orderRecord],
+          order: [
+            ...(t.order || []),
+            ...cartItemsArray.map((it) => [
+              it.name,
+              it.qty,
+              it.price,
+              "QR"
+            ])
+          ],
           guests: t.guests > 0 ? t.guests : 2,
-          order: existingOrder,
           qrCount: (t.qrCount || 0) + 1
         };
       }
-      return t;
-    }));
 
-    setOrderPlaced(true);
-    setIsCartOpen(false);
-  };
+      return t;
+    })
+  );
+
+  setOrderPlaced(true);
+  setIsCartOpen(false);
+  setCustomerError("");
+};
+
 
   return (
     <div className="mobile-view-container">
@@ -732,16 +810,12 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
               {currentStatus === "ready" ? "🔔" : currentStatus === "preparing" ? "👨‍🍳" : "🎉"}
             </div>
 
-            <h3 style={{ margin: "4px 0", fontSize: 20, color: currentStatus === "ready" ? "#16a34a" : "#0f172a", fontWeight: 900 }}>
-              {currentStatus === "ready"
-                ? "Your Order is Ready to Serve!"
-                : currentStatus === "preparing"
-                ? "Chef is Brewing & Cooking!"
-                : "Order Sent to Kitchen!"}
+            <h3 style={{ margin: "4px 0", fontSize: 20, color: "#15803d", fontWeight: 900 }}>
+              Thank you for ordering!
             </h3>
 
             <p style={{ margin: 0, fontSize: 13, color: "var(--mut)", textAlign: "center" }}>
-              Ticket <b>#{orderNumber}</b> sent to Kitchen for <b>{currentTable.name}</b>.
+              Your order <b>#{orderNumber}</b> has been received for <b>{currentTable.name}</b>.
             </p>
 
             {/* Live Kitchen Status Alert Pill */}
@@ -793,7 +867,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
 
             {/* Order Items Receipt Box */}
             <div className="success-items-list">
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "var(--dk)" }}>Your Items in Kitchen:</div>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "var(--dk)" }}>Your Order:</div>
               {cartItemsArray.map((it) => (
                 <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}>
                   <span>{it.qty}x {it.name}</span>
@@ -806,35 +880,6 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", marginTop: 14 }}>
-              <button
-                type="button"
-                className="btn-save"
-                style={{ width: "100%", padding: "11px", fontSize: 13, fontWeight: 700 }}
-                onClick={() => { setCart({}); setOrderPlaced(false); }}
-              >
-                + Order More Drinks or Food
-              </button>
-
-              <button
-                type="button"
-                style={{ width: "100%", padding: "9px", fontSize: 12, background: "#ea580c", color: "#fff", border: 0, borderRadius: 6, fontWeight: 700, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}
-                onClick={() => go("/kitchen")}
-              >
-                <span>👨‍🍳</span>
-                <span>Demo: View this in Kitchen Display (KDS)</span>
-              </button>
-
-              <button
-                type="button"
-                className="btn-cancel"
-                style={{ width: "100%", padding: "8px", fontSize: 12 }}
-                onClick={() => go("/tables")}
-              >
-                Return to Table Floor
-              </button>
-            </div>
           </div>
         ) : (
           /* Normal Menu View */
@@ -946,6 +991,23 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
                   </div>
                 ))}
 
+                <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--mut)" }}>Customer details for this table session</div>
+                  <input
+                    placeholder="Customer name (required)"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                  <input
+                    placeholder="Phone number (required)"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+
                 {/* Special Instructions Input */}
                 <div style={{ marginTop: 14 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "var(--mut)", display: "block", marginBottom: 5 }}>
@@ -984,6 +1046,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
                   <span>🚀</span>
                   <span>SEND ORDER TO KITCHEN (₹{cartGrandTotal.toFixed(2)})</span>
                 </button>
+                {customerError && <div style={{ color: "#b91c1c", fontSize: 12, fontWeight: 700, marginTop: 8 }}>{customerError}</div>}
               </div>
             </div>
           </div>
@@ -1073,7 +1136,7 @@ function KitchenTicketPrintModal({ order, onClose }) {
 }
 
 /* ---------- Kitchen Display System (KDS / #/kitchen) ---------- */
-function KitchenDisplay({ go, orders, setOrders, tables, setTables }) {
+function KitchenDisplay({ go, orders, setOrders, tables, setTables, collectionActive }) {
   const [filterTab, setFilterTab] = useState("all-active"); // "all-active" | "new" | "preparing" | "ready" | "served" | "all"
   const [search, setSearch] = useState("");
   const [soundOn, setSoundOn] = useState(true);
@@ -2003,7 +2066,10 @@ function LoginView({ onLogin }) {
 }
 
 /* ---------- Home (Kitchen removed - 3 Main Modules: Review, Glossary, Tables) ---------- */
-function Home({ go, currentUser }) {
+function Home({ go, currentUser, tables, collection, onStartCollection, onStopCollection }) {
+  const totalOrders = tables.reduce((count, table) => count + (table.order || []).length, 0);
+  const totalAmount = tables.reduce((sum, table) => sum + (table.order || []).reduce((tableSum, item) => tableSum + (Number(item[1]) * Number(item[2])), 0), 0);
+  const startedAt = collection.startedAt ? new Date(collection.startedAt).toLocaleString() : "—";
   return (
     <div className="admin-home-container">
       {/* Admin Header Banner */}
@@ -2012,6 +2078,28 @@ function Home({ go, currentUser }) {
           <div className="admin-role-badge">
             <span className="admin-badge-dot"></span>
             <span>👑 CAFE ADMINISTRATOR PORTAL</span>
+          </div>
+
+          <div className="card" style={{ padding: "14px 18px", borderColor: collection.active ? "#86efac" : "#cbd5e1" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontWeight: 900, color: collection.active ? "#15803d" : "#475569", fontSize: 15 }}>
+                  {collection.active ? "● Collection Active" : collection.stoppedAt ? "● Collection Closed" : "● Collection Not Started"}
+                </div>
+                <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>
+                  {collection.active ? `Started ${startedAt}. This state survives refreshes and power loss.` : collection.stoppedAt ? `Closed ${new Date(collection.stoppedAt).toLocaleString()}.` : "Start a collection session when you are ready."}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {!collection.active && <button type="button" className="btn-save" onClick={onStartCollection}>Start Collection</button>}
+                {collection.active && <button type="button" className="btn-del" onClick={onStopCollection}>Stop Collection</button>}
+              </div>
+            </div>
+            {collection.stoppedAt && !collection.active && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #e2e8f0", color: "#334155", fontSize: 13 }}>
+                <b>Final collection summary:</b> {collection.finalSummary?.orders || totalOrders} orders · ₹{Number(collection.finalSummary?.amount ?? totalAmount).toLocaleString("en-IN")}
+              </div>
+            )}
           </div>
           <h2 className="admin-hero-title">Espresso & Co. Operations Dashboard</h2>
           <p className="admin-hero-desc">
@@ -2083,7 +2171,7 @@ function Home({ go, currentUser }) {
   );
 }
 
-function Review({ go, sub }) {
+function Review({ go, sub, collectionActive }) {
   const [cal, setCal] = useState({ y: 2026, m: 9, d: 14 });
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -2135,7 +2223,17 @@ function Review({ go, sub }) {
   const pages = Math.max(1, Math.ceil(all.length / 15)), pg = Math.min(page, pages), [rev, n] = [dayRev(cal.m, cal.d), dayItems(cal.m, cal.d)], mt = monthTotal(cal.y, cal.m);
 
   /* --- Profit & Expense Data --- */
-  const baseTodaySales = 4150;
+  const normalSales = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("cafe_normal_sales") || "[]");
+    } catch (error) {
+      console.error("Unable to read normal sales report data.", error);
+      return [];
+    }
+  })();
+  const normalSalesRevenue = normalSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+  const normalSalesCost = normalSales.reduce((sum, sale) => sale.grossProfit == null ? sum : sum + sale.items.reduce((cost, item) => cost + Number(item.costPrice || 0) * item.qty, 0), 0);
+  const baseTodaySales = 4150 + normalSalesRevenue;
   const [expList, setExpList] = useState(() => {
     try {
       const saved = localStorage.getItem("cafe_today_expenses");
@@ -2191,15 +2289,19 @@ function Review({ go, sub }) {
   const [expMode, setExpMode] = useState("Cash");
   const [expAmt, setExpAmt] = useState("");
   const [expReason, setExpReason] = useState("");
+  const [expSupplier, setExpSupplier] = useState(VEN0[0]?.[0] || "");
+  const [expReference, setExpReference] = useState("");
   const addExpense = () => {
     const amt = parseFloat(expAmt);
     if (!amt || amt <= 0) return;
-    if (expCat === "Other" && !expReason.trim()) return;
-    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, reason: expCat === "Other" ? expReason.trim() : "", time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    if (expCat === "Others" && !expReason.trim()) return;
+    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
     setExpList(prev => [entry, ...prev]);
-    setExpAmt(""); setExpReason("");
+    setExpAmt(""); setExpReason(""); setExpReference("");
   };
-  const removeExpense = (id) => setExpList(prev => prev.filter(e => e.id !== id));
+  const removeExpense = (id) => {
+    setExpList(prev => prev.filter(e => e.id !== id));
+  };
   const totalExpense = expList.reduce((s, x) => s + x.amount, 0);
   const actualProfit = baseTodaySales - totalExpense;
 
@@ -2363,7 +2465,7 @@ function Review({ go, sub }) {
                 {/* Category Selection */}
                 <div className="exp-cat-label">Select Category</div>
                 <div className="exp-cat-btns">
-                  {["Vendor", "Supplier Salary", "Other"].map(c => (
+                  {["Supplier", "Vendor", "Others"].map(c => (
                     <button key={c} type="button" className={`exp-cat-btn ${expCat === c ? "active" : ""}`} onClick={() => { setExpCat(c); setExpReason(""); }}>
                       {c === "Vendor" ? "🏪" : c === "Supplier Salary" ? "👨‍💼" : "📝"} {c}
                     </button>
@@ -2387,18 +2489,30 @@ function Review({ go, sub }) {
                 </div>
 
                 {/* Reason input for Other */}
-                {expCat === "Other" && (
+                {(expCat === "Supplier" || expCat === "Vendor") && (
                   <div className="exp-field">
-                    <label>📝 Reason</label>
+                    <label>🏢 Select {expCat}</label>
+                    <select className="exp-input" value={expSupplier} onChange={(e) => setExpSupplier(e.target.value)}>
+                      {VEN0.map((supplier) => <option key={supplier[0]} value={supplier[0]}>{supplier[0]}</option>)}
+                    </select>
+                  </div>
+                )}
+                {expCat === "Others" && (
+                  <div className="exp-field">
+                    <label>📝 Expense title / notes</label>
                     <input type="text" placeholder="Enter reason for expense..." value={expReason} onChange={(e) => setExpReason(e.target.value)} className="exp-input" />
                   </div>
                 )}
+                <div className="exp-field">
+                  <label>🔖 Invoice / Reference</label>
+                  <input type="text" placeholder="Optional reference number" value={expReference} onChange={(e) => setExpReference(e.target.value)} className="exp-input" />
+                </div>
                 {/* Amount input */}
                 <div className="exp-field">
                   <label>💰 Amount (₹)</label>
                   <input type="number" placeholder="Enter amount..." value={expAmt} onChange={(e) => setExpAmt(e.target.value)} className="exp-input" onKeyDown={(e) => e.key === "Enter" && addExpense()} />
                 </div>
-                <button className="exp-add-btn" onClick={addExpense} disabled={!expAmt || (expCat === "Other" && !expReason.trim())}>
+                <button className="exp-add-btn" onClick={addExpense} disabled={!expAmt || (expCat === "Others" && !expReason.trim())}>
                   ➕ Add Expense
                 </button>
               </div>
@@ -2532,7 +2646,17 @@ function Review({ go, sub }) {
 }
 
 function Glossary({ go, sub, currentUser }) {
-  const [ven, setVen] = useState(VEN0), [stk, setStk] = useState(STK0);
+  const [ven, setVen] = useState(VEN0), [stk, setStk] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "null");
+      return Array.isArray(saved) && saved.length
+        ? saved.map((item) => [item.name, item.category, item.id, item.stock, item.price, "", "", "", ""])
+        : STK0;
+    } catch (error) {
+      console.error("Unable to restore inventory records.", error);
+      return STK0;
+    }
+  });
   const [vi, setVi] = useState(0), [si, setSi] = useState(0);
   const [vq, setVq] = useState(""), [sq, setSq] = useState("");
   const [vPage, setVPage] = useState(1), [sPage, setSPage] = useState(1);
@@ -2540,6 +2664,18 @@ function Glossary({ go, sub, currentUser }) {
   const [stockFilter, setStockFilter] = useState("all"); // "all" | "low" | "out"
 
   const PAGE_SIZE = 5;
+
+  useEffect(() => {
+    const inventory = stk.map((row) => ({
+      id: row[2],
+      name: row[0],
+      category: row[1],
+      stock: Number(row[3]) || 0,
+      price: Number(row[4]) || 0,
+      cost: null
+    }));
+    localStorage.setItem("cafe_normal_inventory", JSON.stringify(inventory));
+  }, [stk]);
 
   const match = (arr, q) => arr.map((r, i) => [r, i]).filter(([r]) => !q || r.join(" ").toLowerCase().includes(q.toLowerCase()));
 
@@ -3218,7 +3354,419 @@ const INITIAL_KITCHEN_MESSAGES = [
   }
 ];
 
-function Tables({ go, tables, setTables, kitchenOrders = [], setKitchenOrders }) {
+function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, autoPrint = false, collectionActive }) {
+  const bill = calculateBill(table);
+  const hasOrders = (table.orders || []).length > 0 && bill.lines.length > 0;
+  const billDate = table.orders?.map((order) => order.createdAt).filter(Boolean).sort()[0];
+  const [paymentMethod, setPaymentMethod] = useState(table.paymentMethod || "Cash");
+
+  useEffect(() => {
+    if (autoPrint) {
+      const timer = setTimeout(() => window.print(), 50);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [autoPrint]);
+
+  const markPaid = () => {
+    const selectedMethod = paymentMethod || "Cash";
+    onUpdateTable(table.id, (current) => ({
+      ...current,
+      paymentStatus: "Paid",
+      paymentMethod: selectedMethod,
+      paidAt: new Date().toISOString()
+    }));
+  };
+
+  const printBill = () => {
+    window.print();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div className="bill-print-area" style={{ background: "#fff", borderRadius: 12, width: "min(100%, 560px)", maxHeight: "92vh", overflowY: "auto", padding: 22, boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+          <div>
+            <h2 style={{ margin: 0, color: "#0b3a78" }}>ESPRESSO & CO. CAFE</h2>
+            <div style={{ fontSize: 12, color: "#64748b" }}>Receipt / Combined Table Bill</div>
+          </div>
+          <button type="button" onClick={onClose} className="sheet-close">✕</button>
+        </div>
+        <div style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", margin: "14px 0", padding: "10px 0", fontSize: 12, display: "grid", gap: 4 }}>
+          <div><b>Bill No:</b> {hasOrders ? `BILL-${table.sessionId || table.id}` : "—"}</div>
+          <div><b>Table:</b> {tableLabel(table, index)}</div>
+          <div><b>Customer name:</b> {table.customer?.name || table.orders?.find((order) => order.customer?.name)?.customer?.name || "—"}</div>
+          <div><b>Phone number:</b> {table.customer?.phone || table.orders?.find((order) => order.customer?.phone)?.customer?.phone || "—"}</div>
+          <div><b>Bill date:</b> {billDate ? new Date(billDate).toLocaleString() : "—"}</div>
+        </div>
+
+        {!hasOrders && (
+          <div style={{ padding: "22px 10px", textAlign: "center", color: "#64748b", fontWeight: 700 }}>
+            No bill available yet.
+          </div>
+        )}
+
+        {hasOrders && <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr><th style={{ textAlign: "left" }}>Item</th><th>Qty</th><th>Unit</th><th style={{ textAlign: "right" }}>Total</th></tr></thead>
+          <tbody>{bill.lines.map((item) => (
+            <tr key={item.menuId || item.name} style={{ borderTop: "1px solid #e2e8f0" }}>
+              <td style={{ padding: "7px 0" }}>{item.name}</td>
+              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{item.qty}</td>
+              <td style={{ textAlign: "center" }}>₹{item.price.toFixed(2)}</td><td style={{ textAlign: "right" }}>₹{item.lineTotal.toFixed(2)}</td>
+            </tr>
+          ))}</tbody>
+        </table>}
+        {hasOrders && <div style={{ marginTop: 12, borderTop: "1px solid #cbd5e1", paddingTop: 8, display: "grid", gap: 5, fontSize: 13 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><b>₹{bill.subtotal.toFixed(2)}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax (5%)</span><b>₹{bill.tax.toFixed(2)}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><b>₹{bill.discount.toFixed(2)}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Final Total</b><b>₹{bill.total.toFixed(2)}</b></div>
+          <div><b>Payment status:</b> {table.paymentStatus || "Unpaid"} {table.paymentStatus === "Paid" ? `(${table.paymentMethod})` : ""}</div>
+        </div>}
+
+        {table.status === "Occupied" && hasOrders && (
+          <div style={{ marginTop: 14, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              Payment method
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                <option>Cash</option><option>GPay</option><option>Card</option>
+              </select>
+            </label>
+            {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+          <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "null");
+      return Array.isArray(saved) ? saved : STK0.map((row, index) => ({
+        id: row[2] || `SKU-${index + 1}`,
+        name: row[0],
+        category: row[1] || "Other Bakery Products",
+        stock: Number(row[3]) || 0,
+        price: Number(row[4]) || 0,
+        cost: null
+      }));
+    } catch (error) {
+      console.error("Unable to restore normal-sale inventory.", error);
+      return [];
+    }
+  });
+  const [cart, setCart] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const updateQty = (product, delta) => {
+    setCart((current) => {
+      const nextQty = Math.max(0, Math.min(product.stock, (current[product.id] || 0) + delta));
+      if (!nextQty) {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      }
+      return { ...current, [product.id]: nextQty };
+    });
+  };
+  const selected = products.filter((product) => cart[product.id]);
+  const total = selected.reduce((sum, product) => sum + product.price * cart[product.id], 0);
+
+  const completeSale = () => {
+    if (saving) return;
+    if (!selected.length) {
+      setError("Add at least one product to complete the sale.");
+      return;
+    }
+    if (selected.some((product) => cart[product.id] > product.stock)) {
+      setError("One or more selected quantities exceed available stock.");
+      return;
+    }
+    setSaving(true);
+    const sale = {
+      id: `SALE-${Date.now()}`,
+      saleNumber: `NS-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      items: selected.map((product) => ({
+        productId: product.id,
+        name: product.name,
+        qty: cart[product.id],
+        unitPrice: product.price,
+        costPrice: product.cost
+      })),
+      total,
+      paymentMethod,
+      paymentStatus: "Paid",
+      grossProfit: selected.every((product) => Number.isFinite(product.cost))
+        ? selected.reduce((sum, product) => sum + (product.price - product.cost) * cart[product.id], 0)
+        : null
+    };
+    try {
+      const sales = JSON.parse(localStorage.getItem("cafe_normal_sales") || "[]");
+      const movements = JSON.parse(localStorage.getItem("cafe_stock_movements") || "[]");
+      localStorage.setItem("cafe_normal_sales", JSON.stringify([...sales, sale]));
+      localStorage.setItem("cafe_stock_movements", JSON.stringify([
+        ...movements,
+        ...selected.map((product) => ({ id: `MOVE-${Date.now()}-${product.id}`, saleId: sale.id, productId: product.id, quantity: -cart[product.id], createdAt: sale.createdAt }))
+      ]));
+      const nextProducts = products.map((product) => ({ ...product, stock: product.stock - (cart[product.id] || 0) }));
+      setProducts(nextProducts);
+      localStorage.setItem("cafe_normal_inventory", JSON.stringify(nextProducts));
+      onCompleted(sale);
+      onClose();
+    } catch (storageError) {
+      console.error("Unable to save normal sale.", storageError);
+      setSaving(false);
+      setError("The sale could not be saved. No sale was completed.");
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 12, width: "min(100%, 720px)", maxHeight: "92vh", overflowY: "auto", padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0, color: "#0b3a78" }}>🛍️ Normal Sale</h2>
+          <button type="button" className="sheet-close" onClick={onClose}>✕</button>
+        </div>
+        <p style={{ color: "#64748b", fontSize: 12 }}>Walk-in sale. This does not occupy a cafe table.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
+          {products.filter((product) => product.stock > 0).map((product) => (
+            <div key={product.id} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
+              <b>{product.name}</b>
+              <div style={{ fontSize: 12, color: "#64748b" }}>{product.category} · ₹{product.price} · Stock {product.stock}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <button type="button" onClick={() => updateQty(product, -1)}>−</button>
+                <b>{cart[product.id] || 0}</b>
+                <button type="button" onClick={() => updateQty(product, 1)} disabled={(cart[product.id] || 0) >= product.stock}>+</button>
+                <button type="button" className="btn-save" onClick={() => updateQty(product, 1)} disabled={(cart[product.id] || 0) >= product.stock}>Add</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <b>Total: ₹{total.toFixed(2)}</b>
+          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+            <option>Cash</option><option>GPay / UPI</option><option>Card</option>
+          </select>
+        </div>
+        {error && <div style={{ color: "#b91c1c", fontWeight: 700, fontSize: 12, marginTop: 8 }}>{error}</div>}
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn-save" onClick={completeSale} disabled={!selected.length || saving}>{saving ? "Saving…" : "Complete Sale"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, collectionActive }) {
+  const [billTableId, setBillTableId] = useState(null);
+  const [autoPrintId, setAutoPrintId] = useState(null);
+  const [showNormalSale, setShowNormalSale] = useState(false);
+  const [saleNotice, setSaleNotice] = useState("");
+  const [tableModal, setTableModal] = useState(null);
+  const [tableForm, setTableForm] = useState({ id: "", displayName: "", section: "", seats: 2 });
+  const updateTable = (tableId, updater) => setTables((current) => current.map((table) => table.id === tableId ? updater(table) : table));
+  const openNewTable = () => {
+    const numbers = tables.map((table) => Number(String(table.id).match(/\d+$/)?.[0] || 0));
+    const nextNumber = Math.max(0, ...numbers) + 1;
+    setTableForm({ id: `T${nextNumber}`, displayName: `Table ${pad(nextNumber)}`, section: "", seats: 2 });
+    setTableModal({ mode: "new", tableId: null });
+  };
+  const openEditTable = (table) => {
+    setTableForm({
+      id: table.id,
+      displayName: table.displayName || table.name || table.id,
+      section: table.section || "",
+      seats: Number(table.seats) || 2
+    });
+    setTableModal({ mode: "edit", tableId: table.id });
+  };
+  const saveTableDetails = () => {
+    const id = tableForm.id.trim().toUpperCase();
+    const displayName = tableForm.displayName.trim() || `Table ${id}`;
+    const seats = Math.max(1, Number(tableForm.seats) || 1);
+    if (!id || tables.some((table) => table.id === id && table.id !== tableModal?.tableId)) {
+      window.alert("That table number already exists. Choose a unique table number.");
+      return;
+    }
+    if (tableModal?.mode === "edit") {
+      updateTable(tableModal.tableId, (current) => ({ ...current, id, displayName, name: displayName, section: tableForm.section.trim(), seats }));
+    } else {
+      setTables((current) => [...current, {
+        id,
+        displayName,
+        name: displayName,
+        section: tableForm.section.trim(),
+        seats,
+        status: "Free",
+        guests: 0,
+        seatedAt: "—",
+        order: [],
+        orders: [],
+        customer: null,
+        sessionId: null,
+        sessionHistory: [],
+        paymentStatus: "Unpaid",
+        paymentMethod: null,
+        waiter: "—",
+        qrCount: 0,
+        settledIncome: 0
+      }]);
+    }
+    setTableModal(null);
+  };
+  const deleteTable = (table) => {
+    if (table.status === "Occupied" || (table.orders || []).length > 0 || table.paymentStatus === "Paid") {
+      window.alert("A table with an active session, orders, or a paid bill cannot be deleted.");
+      return;
+    }
+    if (!window.confirm(`Delete ${table.displayName || table.name || table.id}?`)) return;
+    setTables((current) => current.filter((entry) => entry.id !== table.id));
+    setBillTableId((current) => current === table.id ? null : current);
+  };
+  const closeTable = (table, index) => {
+    if (!table || table.status !== "Occupied") {
+      window.alert("This table is not currently occupied.");
+      return;
+    }
+
+    const paid = String(table.paymentStatus || "").trim().toLowerCase() === "paid";
+    const method = String(table.paymentMethod || "").trim();
+    if (!paid || !["Cash", "GPay", "Card"].includes(method)) {
+      window.alert("First select Cash, GPay, or Card in View Bill and click Mark as Paid.");
+      setBillTableId(table.id);
+      return;
+    }
+
+    const closedAt = new Date().toISOString();
+
+    // Update the parent table state directly so the status change is committed
+    // immediately and the table card re-renders as Free.
+    setTables((currentTables) =>
+      currentTables.map((current) => {
+        if (current.id !== table.id) return current;
+
+        const completedSession = {
+          ...current,
+          status: "Occupied",
+          paymentStatus: "Paid",
+          paymentMethod: method,
+          closedAt
+        };
+
+        return {
+          ...current,
+          status: "Free",
+          sessionHistory: [...(current.sessionHistory || []), completedSession],
+          sessionId: null,
+          customer: null,
+          customerName: "",
+          customerPhone: "",
+          orders: [],
+          order: [],
+          paymentStatus: "Unpaid",
+          paymentMethod: null,
+          paidAt: null,
+          guests: 0,
+          seatedAt: "—"
+        };
+      })
+    );
+
+    // Closing the session hides the bill popup and View Bill button.
+    setBillTableId(null);
+    setAutoPrintId(null);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0" }}>
+      <div className="card" style={{ padding: "16px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0, color: "#0b3a78", fontSize: 22 }}>🪑 Table Management</h2>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn-save" onClick={openNewTable}>+ Add Table</button>
+            <button type="button" className="btn-save" onClick={() => setShowNormalSale(true)}>🛍️ Normal Sale</button>
+          </div>
+        </div>
+        <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 13 }}>QR ordering creates one open session per table. Orders remain separate for the kitchen and are combined only in the bill.</p>
+        <p style={{ margin: "8px 0 0", color: "#92400e", fontSize: 12 }}>Local persistence survives refreshes in this browser. Cross-device synchronization will use the shared database later.</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 14 }}>
+        {tables.map((table, index) => {
+          const orderUrl = `${window.location.origin}${window.location.pathname}#/order/${encodeURIComponent(table.id)}`;
+          const occupied = table.status === "Occupied";
+          return (
+            <article key={table.id} className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ margin: 0, color: "#1e293b", fontSize: 17 }}>{tableLabel(table, index)}</h3>
+                <b style={{ color: occupied ? "#b91c1c" : "#15803d", fontSize: 13 }}>● {occupied ? "Occupied" : "Free"}</b>
+              </div>
+              <div style={{ display: "flex", justifyContent: "center" }}><QRCode value={orderUrl} size={150} /></div>
+              {(table.status === "Occupied" || (table.orders || []).length > 0) && (
+                <button
+                  type="button"
+                  className="btn-save"
+                  onClick={() => setBillTableId(table.id)}
+                  style={{ width: "100%", minHeight: 42, fontWeight: 800, fontSize: 15, background: "#0b3a78", color: "#ffffff", border: "2px solid #0b3a78", borderRadius: 8, letterSpacing: 0.2 }}
+                >
+                  👁️ VIEW BILL
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => closeTable(table, index)}
+                disabled={!occupied}
+                title={occupied && table.paymentStatus !== "Paid" ? "Click to see payment instructions; mark paid first" : "Close this table session"}
+              >
+                Mark as Free
+              </button>
+            </article>
+          );
+        })}
+      </div>
+      {billTableId && (
+        <BillPreview
+          table={tables.find((table) => table.id === billTableId)}
+          index={tables.findIndex((table) => table.id === billTableId)}
+          onClose={() => setBillTableId(null)}
+          onUpdateTable={updateTable}
+          onAddKitchenOrder={onAddKitchenOrder}
+          autoPrint={autoPrintId === billTableId}
+          collectionActive={collectionActive}
+        />
+      )}
+      {saleNotice && <div style={{ color: "#15803d", fontWeight: 700 }}>{saleNotice}</div>}
+      {showNormalSale && <NormalSaleModal collectionActive={collectionActive} onClose={() => setShowNormalSale(false)} onCompleted={(sale) => setSaleNotice(`Sale ${sale.saleNumber} completed for ₹${sale.total.toFixed(2)}.`)} />}
+      {tableModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div className="card" style={{ width: "min(100%, 430px)", padding: 22, display: "grid", gap: 12 }}>
+            <h3 style={{ margin: 0, color: "#0b3a78" }}>{tableModal.mode === "new" ? "Add Table" : "Edit Table"}</h3>
+            <label>Table number or name<input value={tableForm.id} onChange={(event) => setTableForm((current) => ({ ...current, id: event.target.value }))} disabled={tableModal.mode === "edit"} /></label>
+            <label>Display name<input value={tableForm.displayName} onChange={(event) => setTableForm((current) => ({ ...current, displayName: event.target.value }))} /></label>
+            <label>Section (optional)<input value={tableForm.section} onChange={(event) => setTableForm((current) => ({ ...current, section: event.target.value }))} /></label>
+            <label>Number of seats<input type="number" min="1" value={tableForm.seats} onChange={(event) => setTableForm((current) => ({ ...current, seats: event.target.value }))} /></label>
+            <div style={{ color: "#64748b", fontSize: 12 }}>A unique QR code will be generated automatically for this table.</div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button type="button" className="btn-cancel" onClick={() => setTableModal(null)}>Cancel</button>
+              <button type="button" className="btn-save" onClick={saveTableDetails}>Save Table</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Tables({ go, tables, setTables, kitchenOrders = [], setKitchenOrders, collectionActive }) {
   const [selectedId, setSelectedId] = useState("G1");
   const [sectionFilter, setSectionFilter] = useState("all"); // 'all' | 'G' | 'C'
   const [dailyOrders, setDailyOrders] = useState(() => initDailyTableOrders(tables));
@@ -3932,7 +4480,7 @@ function Tables({ go, tables, setTables, kitchenOrders = [], setKitchenOrders })
 /* ---------- App (routes) ---------- */
 
 /* ---------- Supplier Portal (Supplier Plays Main Role: Kitchen Messages Dispatch, 10 Tables 5 G + 5 C, Extra Table & Extra Seat, Stock) ---------- */
-function SupplierPortal({ go, sub, tables, setTables, currentUser }) {
+function SupplierPortal({ go, sub, tables, setTables, currentUser, collectionActive }) {
   const [activeTab, setActiveTab] = useState("floor"); // "floor" | "stock"
   const [kitchenMessages, setKitchenMessages] = useState(INITIAL_KITCHEN_MESSAGES);
   const [showKitchenMsgBox, setShowKitchenMsgBox] = useState(true);
@@ -4463,13 +5011,162 @@ function SupplierPortal({ go, sub, tables, setTables, currentUser }) {
 
 export default function App() {
   const [path, go] = useRoute();
-  const [tables, setTables] = useState(TABLES0);
-  useEffect(() => {
-    if (tables.length !== TABLES0.length || (tables[0] && tables[0].id.startsWith("T"))) {
-      setTables(TABLES0);
+  const [tables, setTables] = useState(() => {
+    try {
+      return normalizeTables(JSON.parse(localStorage.getItem("cafe_table_statuses") || "null"));
+    } catch (error) {
+      console.error("Unable to restore table statuses.", error);
+      return INITIAL_TABLES;
     }
+  });
+  const [collection, setCollection] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("cafe_collection_session") || "null") || { active: false, startedAt: null, stoppedAt: null, finalSummary: null };
+    } catch (error) {
+      console.error("Unable to restore collection session.", error);
+      return { active: false, startedAt: null, stoppedAt: null, finalSummary: null };
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("cafe_table_statuses", JSON.stringify(tables));
+  }, [tables]);
+  useEffect(() => {
+    localStorage.setItem("cafe_collection_session", JSON.stringify(collection));
+  }, [collection]);
+  const [kitchenOrders, setKitchenOrders] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("cafe_kitchen_orders") || "null");
+      return Array.isArray(saved) ? saved : INITIAL_KITCHEN_ORDERS;
+    } catch (error) {
+      console.error("Unable to restore kitchen orders.", error);
+      return INITIAL_KITCHEN_ORDERS;
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("cafe_kitchen_orders", JSON.stringify(kitchenOrders));
+  }, [kitchenOrders]);
+
+  // Receive QR orders submitted from customer phones.
+  useEffect(() => {
+    let active = true;
+
+    const toKitchenTicket = (row) => ({
+      id: row.kot_number || row.id,
+      tableId: row.table_id,
+      tableName: row.table_name || `Table ${row.table_id}`,
+      time: new Date(row.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date(row.created_at || Date.now()).getTime(),
+      source: row.source || "QR Code",
+      items: (Array.isArray(row.items) ? row.items : []).map((item) => ({
+        name: item.name,
+        qty: Number(item.qty || 1),
+        price: Number(item.price || 0),
+        icon: item.icon || "☕",
+        done: Boolean(item.done)
+      })),
+      specialNotes: row.special_notes || "",
+      status: row.status || "new"
+    });
+
+    const applyIncomingOrder = (row) => {
+      if (!active || !row?.id) return;
+      const ticket = toKitchenTicket(row);
+
+      setKitchenOrders((previous) => {
+        if (previous.some((order) => order.id === ticket.id)) return previous;
+        playKitchenDing();
+        setLiveNotification({
+          id: Date.now(),
+          ticketId: ticket.id,
+          tableName: ticket.tableName,
+          itemCount: ticket.items.reduce((sum, item) => sum + (item.qty || 1), 0),
+          tableId: ticket.tableId
+        });
+        window.setTimeout(() => {
+          setLiveNotification((current) => current?.ticketId === ticket.id ? null : current);
+        }, 6000);
+        return [ticket, ...previous];
+      });
+
+      // Update this laptop's table bill from the same incoming QR order.
+      setTables((previous) => previous.map((table) => {
+        if (table.id !== ticket.tableId) return table;
+        if ((table.orders || []).some((order) => order.id === ticket.id)) return table;
+
+        const billOrder = {
+          id: ticket.id,
+          kotNumber: ticket.id,
+          tableId: ticket.tableId,
+          createdAt: new Date(ticket.timestamp).toISOString(),
+          customer: {
+            name: row.customer_name || "QR Customer",
+            phone: row.customer_phone || ""
+          },
+          items: ticket.items.map((item) => ({
+            menuId: item.menuId || item.name,
+            name: item.name,
+            qty: item.qty,
+            price: item.price
+          })),
+          specialNotes: ticket.specialNotes,
+          status: "submitted"
+        };
+
+        return {
+          ...table,
+          status: "Occupied",
+          customer: {
+            name: row.customer_name || table.customer?.name || "QR Customer",
+            phone: row.customer_phone || table.customer?.phone || ""
+          },
+          orders: [...(table.orders || []), billOrder],
+          order: [
+            ...(table.order || []),
+            ...ticket.items.map((item) => [item.name, item.qty, item.price, "QR"])
+          ],
+          guests: table.guests > 0 ? table.guests : 2,
+          qrCount: (table.qrCount || 0) + 1
+        };
+      }));
+    };
+
+    // Load ALL QR orders for each table, including served orders.
+    // Served orders must remain in the running bill so a customer's later
+    // order at the same table is combined with their earlier orders.
+    const loadPendingOrders = async () => {
+      const { data, error } = await supabase
+        .from("cafe_kitchen_orders")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Unable to load QR kitchen orders:", error);
+        return;
+      }
+      if (active) (data || []).forEach(applyIncomingOrder);
+    };
+
+    loadPendingOrders();
+
+    const channel = supabase
+      .channel("cafe-kitchen-orders-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "cafe_kitchen_orders" },
+        (payload) => applyIncomingOrder(payload.new)
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.error("Supabase Realtime subscription failed.");
+        }
+      });
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
-  const [kitchenOrders, setKitchenOrders] = useState(INITIAL_KITCHEN_ORDERS);
+
   const [liveNotification, setLiveNotification] = useState(null);
 
   // Authenticated user state: { role: 'admin' | 'supplier' | 'kitchen', name: '...', username: '...' }
@@ -4486,7 +5183,9 @@ export default function App() {
     setCurrentUser(user);
     try {
       localStorage.setItem("cafe_auth_user", JSON.stringify(user));
-    } catch (e) {}
+    } catch {
+      console.error("Unable to persist login state.");
+    }
 
     if (user.landingRoute) {
       go(user.landingRoute);
@@ -4503,7 +5202,9 @@ export default function App() {
     setCurrentUser(null);
     try {
       localStorage.removeItem("cafe_auth_user");
-    } catch (e) {}
+    } catch {
+      console.error("Unable to clear login state.");
+    }
     go("/login");
   };
 
@@ -4520,6 +5221,24 @@ export default function App() {
     setTimeout(() => {
       setLiveNotification((cur) => (cur?.ticketId === newTicket.id ? null : cur));
     }, 6000);
+  };
+
+  const startCollection = () => {
+    setCollection((current) => current.active
+      ? current
+      : { active: true, startedAt: new Date().toISOString(), stoppedAt: null, finalSummary: null });
+  };
+
+  const stopCollection = () => {
+    if (!collection.active || !window.confirm("Are you sure you want to stop this collection?")) return;
+    const orders = tables.reduce((count, table) => count + (table.order || []).length, 0);
+    const amount = tables.reduce((sum, table) => sum + (table.order || []).reduce((tableSum, item) => tableSum + (Number(item[1]) * Number(item[2])), 0), 0);
+    setCollection((current) => ({
+      ...current,
+      active: false,
+      stoppedAt: new Date().toISOString(),
+      finalSummary: { orders, amount }
+    }));
   };
 
   const [, root, sub] = path.split("/");
@@ -4548,6 +5267,7 @@ export default function App() {
         setTables={setTables}
         kitchenOrders={kitchenOrders}
         onSendKitchenOrder={triggerKitchenOrder}
+        collectionActive={collection.active}
       />
     );
   }
@@ -4558,19 +5278,17 @@ export default function App() {
   // 3. Authenticated routes
   else {
     if (root === "review") {
-      page = <Review go={go} sub={sub} />;
+      page = <Review go={go} sub={sub} collectionActive={collection.active} />;
     } else if (root === "glossary") {
       page = <Glossary go={go} sub={sub} currentUser={currentUser} />;
     } else if (root === "tables") {
       page = (
-        <Tables
-          go={go}
-          sub={sub}
+        <TableManagement
           tables={tables}
           setTables={setTables}
-          kitchenOrders={kitchenOrders}
-          setKitchenOrders={setKitchenOrders}
-          onSendKitchenOrder={triggerKitchenOrder}
+          currentUser={currentUser}
+          onAddKitchenOrder={triggerKitchenOrder}
+          collectionActive={collection.active}
         />
       );
     } else if (root === "kitchen") {
@@ -4581,6 +5299,7 @@ export default function App() {
           setOrders={setKitchenOrders}
           tables={tables}
           setTables={setTables}
+          collectionActive={collection.active}
         />
       );
     } else if (root === "supplier") {
@@ -4591,6 +5310,7 @@ export default function App() {
           tables={tables}
           setTables={setTables}
           currentUser={currentUser}
+          collectionActive={collection.active}
         />
       );
     } else {
@@ -4603,6 +5323,7 @@ export default function App() {
             setOrders={setKitchenOrders}
             tables={tables}
             setTables={setTables}
+            collectionActive={collection.active}
           />
         );
       } else if (currentUser.role === "supplier") {
@@ -4613,11 +5334,21 @@ export default function App() {
             tables={tables}
             setTables={setTables}
             currentUser={currentUser}
+            collectionActive={collection.active}
           />
         );
       } else {
         // Admin: Home page with REVIEW, GLOSSARY, TABLES (kitchen removed)
-        page = <Home go={go} currentUser={currentUser} />;
+        page = (
+          <Home
+            go={go}
+            currentUser={currentUser}
+            tables={tables}
+            collection={collection}
+            onStartCollection={startCollection}
+            onStopCollection={stopCollection}
+          />
+        );
       }
     }
   }
@@ -5022,6 +5753,12 @@ tr.row{cursor:pointer}tr.row.sel{background:#e3f0ff}
 .kot-btn.print{flex:0 0 34px;background:#334155;color:#fff;font-size:13px}
 .kot-btn.void{flex:0 0 34px;background:#451a1a;color:#f87171;font-size:13px}
 .kot-btn.void:hover{background:#7f1d1d;color:#fff}
+@media print{
+  body *{visibility:hidden!important}
+  .bill-print-area,.bill-print-area *{visibility:visible!important}
+  .bill-print-area{position:absolute;left:0;top:0;width:100%;max-height:none;box-shadow:none;border-radius:0}
+  .bill-print-area button,.bill-print-area select,.bill-print-area input{display:none!important}
+}
 
 .pe-cash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
