@@ -1745,9 +1745,9 @@ function TableModal({ table, onClose, onSave }) {
   );
 }
 
-/* ---------- Multi-Role Login Portal (Admin, Supplier, Kitchen) ---------- */
+/* ---------- Admin Login Portal ---------- */
 function LoginView({ onLogin }) {
-  const [activeRole, setActiveRole] = useState("admin"); // 'admin' | 'supplier' | 'kitchen'
+  const [activeRole, setActiveRole] = useState("admin");
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
@@ -1772,48 +1772,6 @@ function LoginView({ onLogin }) {
         "Dining Table Floor & POS Billing",
         "Table QR Sticker Code Generator",
         "Complete Management Authority"
-      ]
-    },
-    {
-      id: "supplier",
-      title: "Supplier (Suplyer)",
-      badge: "🚚 Supply & Inventory",
-      tagline: "Supplier Main Role & Kitchen Dispatch",
-      desc: "Supplier receives kitchen orders with exact item details, sends alerts to Admin, manages 10 tables (5 G & 5 C), extra tables/seats, and vendor stock.",
-      color: "#059669",
-      accent: "#10b981",
-      gradient: "linear-gradient(135deg, #047857 0%, #10b981 100%)",
-      icon: "🚚",
-      defaultUser: "supplier",
-      defaultPass: "supplier123",
-      landingRoute: "/supplier",
-      landingName: "Supplier Floor & Kitchen Command",
-      highlights: [
-        "Kitchen Messages Dispatch ➔ Send to Admin",
-        "Manage 10 Tables (5 Called G & 5 Called C)",
-        "Add Extra Tables & Edit Extra Seats",
-        "Raw Ingredient Restocking Controls"
-      ]
-    },
-    {
-      id: "kitchen",
-      title: "Kitchen",
-      badge: "👨‍🍳 Chef & Prep Station",
-      tagline: "Kitchen Display System (KDS)",
-      desc: "Live order screen for line chefs & baristas. Real-time food prep queue, KOT receipts, sound ding, and order status updates.",
-      color: "#ea580c",
-      accent: "#f97316",
-      gradient: "linear-gradient(135deg, #c2410c 0%, #f97316 100%)",
-      icon: "👨‍🍳",
-      defaultUser: "kitchen",
-      defaultPass: "kitchen123",
-      landingRoute: "/kitchen",
-      landingName: "Kitchen Display System (KDS)",
-      highlights: [
-        "Real-Time Kitchen Display Screen",
-        "Order Queue: Cooking, Ready & Served",
-        "Thermal KOT Print Ticket Generation",
-        "Audible Kitchen Ding & Sound Buzzer"
       ]
     }
   ];
@@ -1906,11 +1864,11 @@ function LoginView({ onLogin }) {
         </div>
         <h1 className="login-main-title">Select Login Role</h1>
         <p className="login-sub-title">
-          Sign in to your dedicated portal: <b>Admin</b>, <b>Supplier</b> (suplyer), or <b>Kitchen</b>.
+          Sign in to your dedicated cafe management portal: <b>Admin</b>.
         </p>
       </div>
 
-      {/* 3 Role Selection Cards */}
+      {/* Admin Login Card */}
       <div className="login-roles-grid">
         {ROLES.map((role) => {
           const isSelected = activeRole === role.id;
@@ -3369,13 +3327,7 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
   }, [autoPrint]);
 
   const markPaid = () => {
-    const selectedMethod = paymentMethod || "Cash";
-    onUpdateTable(table.id, (current) => ({
-      ...current,
-      paymentStatus: "Paid",
-      paymentMethod: selectedMethod,
-      paidAt: new Date().toISOString()
-    }));
+    onUpdateTable(table.id, (current) => ({ ...current, paymentStatus: "Paid", paymentMethod }));
   };
 
   const printBill = () => {
@@ -3429,9 +3381,10 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
               Payment method
               <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                <option>Cash</option><option>GPay</option><option>Card</option>
+                <option>Cash</option><option>Card</option><option>GPay</option>
               </select>
             </label>
+            <button type="button" className="btn-save" onClick={printBill}>Print Bill</button>
             {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
           </div>
         )}
@@ -3633,57 +3586,25 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
     setBillTableId((current) => current === table.id ? null : current);
   };
   const closeTable = (table, index) => {
-    if (!table || table.status !== "Occupied") {
-      window.alert("This table is not currently occupied.");
+    if (table.status !== "Occupied" || !window.confirm(`Close ${tableLabel(table, index)} after payment?`)) return;
+    if (table.paymentStatus !== "Paid") {
+      window.alert("Mark the bill as Paid before closing this table session.");
       return;
     }
-
-    const paid = String(table.paymentStatus || "").trim().toLowerCase() === "paid";
-    const method = String(table.paymentMethod || "").trim();
-    if (!paid || !["Cash", "GPay", "Card"].includes(method)) {
-      window.alert("First select Cash, GPay, or Card in View Bill and click Mark as Paid.");
-      setBillTableId(table.id);
-      return;
-    }
-
-    const closedAt = new Date().toISOString();
-
-    // Update the parent table state directly so the status change is committed
-    // immediately and the table card re-renders as Free.
-    setTables((currentTables) =>
-      currentTables.map((current) => {
-        if (current.id !== table.id) return current;
-
-        const completedSession = {
-          ...current,
-          status: "Occupied",
-          paymentStatus: "Paid",
-          paymentMethod: method,
-          closedAt
-        };
-
-        return {
-          ...current,
-          status: "Free",
-          sessionHistory: [...(current.sessionHistory || []), completedSession],
-          sessionId: null,
-          customer: null,
-          customerName: "",
-          customerPhone: "",
-          orders: [],
-          order: [],
-          paymentStatus: "Unpaid",
-          paymentMethod: null,
-          paidAt: null,
-          guests: 0,
-          seatedAt: "—"
-        };
-      })
-    );
-
-    // Closing the session hides the bill popup and View Bill button.
+    updateTable(table.id, (current) => ({
+      ...current,
+      status: "Free",
+      sessionHistory: [...(current.sessionHistory || []), { ...current, closedAt: new Date().toISOString() }],
+      sessionId: null,
+      customer: null,
+      orders: [],
+      order: [],
+      paymentStatus: "Pending",
+      paymentMethod: null,
+      guests: 0,
+      seatedAt: "—"
+    }));
     setBillTableId(null);
-    setAutoPrintId(null);
   };
 
   return (
@@ -3710,7 +3631,7 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                 <b style={{ color: occupied ? "#b91c1c" : "#15803d", fontSize: 13 }}>● {occupied ? "Occupied" : "Free"}</b>
               </div>
               <div style={{ display: "flex", justifyContent: "center" }}><QRCode value={orderUrl} size={150} /></div>
-              {(table.status === "Occupied" || (table.orders || []).length > 0) && (
+              {(table.orders || []).length > 0 && (
                 <button
                   type="button"
                   className="btn-save"
@@ -3722,13 +3643,18 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
               )}
               <button
                 type="button"
-                className="btn-cancel"
-                onClick={() => closeTable(table, index)}
-                disabled={!occupied}
-                title={occupied && table.paymentStatus !== "Paid" ? "Click to see payment instructions; mark paid first" : "Close this table session"}
+                className="btn-save"
+                onClick={() => { setAutoPrintId(table.id); setBillTableId(table.id); }}
+                disabled={(table.orders || []).length === 0}
+                style={{ width: "100%" }}
               >
-                Mark as Free
+                🖨️ Print Bill
               </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                <button type="button" className="btn-save" onClick={() => openEditTable(table)}>Edit Table</button>
+                <button type="button" className="btn-cancel" onClick={() => deleteTable(table)} disabled={occupied || (table.orders || []).length > 0 || table.paymentStatus === "Paid"}>Delete</button>
+              </div>
+              <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || currentUser?.role !== "admin"}>Mark as Free</button>
             </article>
           );
         })}
