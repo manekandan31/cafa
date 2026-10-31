@@ -321,7 +321,7 @@ function TableQRModal({ table, tables, onClose, onOpenMobileView, onOpenAllModal
   const [viewMode, setViewMode] = useState("tent"); // "tent" | "sticker"
   if (!table) return null;
 
-  const orderUrl = `https://cafa-ruddy.vercel.app/#/order/${table.id}`;
+  const orderUrl = `${window.location.origin}${window.location.pathname}#/order/${table.id}`;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(orderUrl);
@@ -515,7 +515,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 
         <div className="modal-body all-stickers-sheet" style={{ flex: 1, overflowY: "auto", padding: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
           {tables.map((t) => {
-            const tableOrderUrl = `https://cafa-ruddy.vercel.app/#/order/${t.id}`;
+            const tableOrderUrl = `${window.location.origin}${window.location.pathname}#/order/${t.id}`;
             return (
               <div key={t.id} className="table-sticker-card">
                 <div className="sticker-cut-border">
@@ -568,7 +568,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 }
 
 /* ---------- Customer Mobile Self-Ordering View (#/order/:tableId) ---------- */
-function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive,collectionSessionId }) {
+function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive }) {
   const currentTable = tables.find((t) => t.id === tableId) || tables[0] || { id: "T1", name: "Table 1" };
   const [selectedCat, setSelectedCat] = useState("All");
   const [cart, setCart] = useState({});
@@ -707,21 +707,20 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   // Send a kitchen-safe copy to Supabase for cross-device sync.
   // Customer phone numbers remain in the private cafe_orders table.
   const { error } = await supabase
-  .from("cafe_kitchen_orders")
-  .insert({
-    id: newTicket.id,
-    kot_number: newTicket.id,
-    table_id: newTicket.tableId,
-    table_name: newTicket.tableName,
-    items: newTicket.items,
-    special_notes: newTicket.specialNotes,
-    status: newTicket.status,
-    source: "QR Code",
-    customer_name: customerName.trim(),
-customer_phone: normalizePhone(customerPhone),
-collection_id: collectionSessionId,
-created_at: new Date(newTicket.timestamp).toISOString()
-  });
+    .from("cafe_kitchen_orders")
+    .insert({
+      id: newTicket.id,
+      kot_number: newTicket.id,
+      table_id: newTicket.tableId,
+      table_name: newTicket.tableName,
+      items: newTicket.items,
+      special_notes: newTicket.specialNotes,
+      status: newTicket.status,
+      source: "QR Code",
+      customer_name: customerName.trim(),
+      customer_phone: normalizePhone(customerPhone),
+      created_at: new Date(newTicket.timestamp).toISOString()
+    });
 
   if (error) {
     console.error("Supabase kitchen order error:", error);
@@ -1774,48 +1773,6 @@ function LoginView({ onLogin }) {
         "Table QR Sticker Code Generator",
         "Complete Management Authority"
       ]
-    },
-    {
-      id: "supplier",
-      title: "Supplier (Suplyer)",
-      badge: "🚚 Supply & Inventory",
-      tagline: "Supplier Main Role & Kitchen Dispatch",
-      desc: "Supplier receives kitchen orders with exact item details, sends alerts to Admin, manages 10 tables (5 G & 5 C), extra tables/seats, and vendor stock.",
-      color: "#059669",
-      accent: "#10b981",
-      gradient: "linear-gradient(135deg, #047857 0%, #10b981 100%)",
-      icon: "🚚",
-      defaultUser: "supplier",
-      defaultPass: "supplier123",
-      landingRoute: "/supplier",
-      landingName: "Supplier Floor & Kitchen Command",
-      highlights: [
-        "Kitchen Messages Dispatch ➔ Send to Admin",
-        "Manage 10 Tables (5 Called G & 5 Called C)",
-        "Add Extra Tables & Edit Extra Seats",
-        "Raw Ingredient Restocking Controls"
-      ]
-    },
-    {
-      id: "kitchen",
-      title: "Kitchen",
-      badge: "👨‍🍳 Chef & Prep Station",
-      tagline: "Kitchen Display System (KDS)",
-      desc: "Live order screen for line chefs & baristas. Real-time food prep queue, KOT receipts, sound ding, and order status updates.",
-      color: "#ea580c",
-      accent: "#f97316",
-      gradient: "linear-gradient(135deg, #c2410c 0%, #f97316 100%)",
-      icon: "👨‍🍳",
-      defaultUser: "kitchen",
-      defaultPass: "kitchen123",
-      landingRoute: "/kitchen",
-      landingName: "Kitchen Display System (KDS)",
-      highlights: [
-        "Real-Time Kitchen Display Screen",
-        "Order Queue: Cooking, Ready & Served",
-        "Thermal KOT Print Ticket Generation",
-        "Audible Kitchen Ding & Sound Buzzer"
-      ]
     }
   ];
 
@@ -1907,11 +1864,11 @@ function LoginView({ onLogin }) {
         </div>
         <h1 className="login-main-title">Select Login Role</h1>
         <p className="login-sub-title">
-          Sign in to your dedicated portal: <b>Admin</b>, <b>Supplier</b> (suplyer), or <b>Kitchen</b>.
+          Sign in to your dedicated portal: <b>Admin</b>.
         </p>
       </div>
 
-      {/* 3 Role Selection Cards */}
+      {/* Admin Login Card */}
       <div className="login-roles-grid">
         {ROLES.map((role) => {
           const isSelected = activeRole === role.id;
@@ -2172,7 +2129,7 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
   );
 }
 
-function Review({ go, sub, collectionActive, collection }) {
+function Review({ go, sub, collectionActive }) {
   const [cal, setCal] = useState({ y: 2026, m: 9, d: 14 });
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -2234,23 +2191,7 @@ function Review({ go, sub, collectionActive, collection }) {
   })();
   const normalSalesRevenue = normalSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
   const normalSalesCost = normalSales.reduce((sum, sale) => sale.grossProfit == null ? sum : sum + sale.items.reduce((cost, item) => cost + Number(item.costPrice || 0) * item.qty, 0), 0);
-  const salesLedger = (() => {
-    try { return JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); }
-    catch { return []; }
-  })();
-  const todayKey = new Date().toISOString().slice(0, 10);
-  // Show only sales belonging to the currently selected collection session.
-  // Starting a new collection creates a new sessionId, so older sales stay in
-  // history and do not appear in the new collection's live totals.
-  const activeSessionSales = collection?.sessionId
-    ? salesLedger.filter((sale) => sale.sessionId === collection.sessionId)
-    : [];
-  const ledgerSessionSales = activeSessionSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const legacySessionSales = collection?.sessionId ? normalSales.reduce((sum, sale) => {
-    const alreadyRecorded = salesLedger.some((entry) => entry.id === sale.id);
-    return sum + (!alreadyRecorded && sale.sessionId === collection.sessionId ? Number(sale.total || 0) : 0);
-  }, 0) : 0;
-  const baseTodaySales = ledgerSessionSales + legacySessionSales;
+  const baseTodaySales = 4150 + normalSalesRevenue;
   const [expList, setExpList] = useState(() => {
     try {
       const saved = localStorage.getItem("cafe_today_expenses");
@@ -2322,9 +2263,8 @@ function Review({ go, sub, collectionActive, collection }) {
   const totalExpense = expList.reduce((s, x) => s + x.amount, 0);
   const actualProfit = baseTodaySales - totalExpense;
 
-  const todayLedger = activeSessionSales;
-  const salesCash = todayLedger.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const salesGPay = todayLedger.filter((sale) => ["gpay", "google pay", "upi"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const salesCash = 2350;
+  const salesGPay = 1800;
   const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
   const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
   const netCash = salesCash - expenseCash;
@@ -2347,9 +2287,9 @@ function Review({ go, sub, collectionActive, collection }) {
         <div className="inc">
           <span className="ic">💰</span>
           <span>
-            <small>Total Income In This Collection</small>
-            <b>₹{(baseTodaySales - totalExpense).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
-            <em>{collection?.startedAt ? new Date(collection.startedAt).toLocaleString() : "Collection not started"}</em>
+            <small>Total Income Since Sales Started</small>
+            <b>₹{(TOTAL_INCOME - totalExpense).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
+            <em>{SALES_START} – Today</em>
           </span>
         </div>
       </div>
@@ -2396,18 +2336,6 @@ function Review({ go, sub, collectionActive, collection }) {
                   </div>
                 </div>
 
-                {/* Current collection payment split */}
-                <div className="kpis" style={{ gridTemplateColumns: "1fr 1fr", gap: 10, margin: "10px 0" }}>
-                  <div className="k1">
-                    <span className="ic" style={{ background: "#dcfce7" }}>💵</span>
-                    <span><small>Cash Collected</small><b>{inr(salesCash)}</b></span>
-                  </div>
-                  <div className="k2">
-                    <span className="ic" style={{ background: "#dbeafe" }}>📱</span>
-                    <span><small>GPay Collected</small><b>{inr(salesGPay)}</b></span>
-                  </div>
-                </div>
-
                 {/* Profit Calculation Summary */}
                 <div className="pe-summary" style={{ background: "#f8fafc", padding: "14px 16px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                   <div className="pe-summary-row">
@@ -2415,18 +2343,6 @@ function Review({ go, sub, collectionActive, collection }) {
                   </div>
                   <div className="pe-summary-row">
                     <span>📉 Less Total Expenses</span><b style={{ color: "#c4161c" }}>- {inr(totalExpense)}</b>
-                  </div>
-                  <div className="pe-summary-row">
-                    <span>🧾 Recorded Payments</span><b>{todayLedger.length}</b>
-                  </div>
-                  <div className="pe-summary-row">
-                    <span>📊 Average Payment</span><b>{inr(todayLedger.length ? baseTodaySales / todayLedger.length : 0)}</b>
-                  </div>
-                  <div className="pe-summary-row">
-                    <span>🧾 Recorded Payments</span><b>{todayLedger.length}</b>
-                  </div>
-                  <div className="pe-summary-row">
-                    <span>📊 Average Payment</span><b>{inr(todayLedger.length ? baseTodaySales / todayLedger.length : 0)}</b>
                   </div>
                   <div className="pe-summary-divider"></div>
                   <div className="pe-summary-row total">
@@ -2746,7 +2662,6 @@ function Glossary({ go, sub, currentUser }) {
 
   // Stock KPI Calculations
   const totalStockCount = stk.length;
-  const totalStockUnits = stk.reduce((acc, curr) => acc + (Number(curr[3]) || 0), 0);
   const totalStockValue = stk.reduce((acc, curr) => acc + (Number(curr[3]) || 0) * (Number(curr[4]) || 0), 0);
   const lowStockCount = stk.filter((x) => { const n = Number(x[3]) || 0; return n > 0 && n <= 12; }).length;
   const outOfStockCount = stk.filter((x) => (Number(x[3]) || 0) === 0).length;
@@ -3022,10 +2937,6 @@ function Glossary({ go, sub, currentUser }) {
             >
               <span className="ic b">💰</span>
               <span><small>Total Stock Value</small><b>{inr(totalStockValue)}</b></span>
-            </div>
-            <div className="k4" style={{ cursor: "default" }} title="Total quantity across all stock items">
-              <span className="ic" style={{ background: "#e0e7ff" }}>🧮</span>
-              <span><small>Total Stock Units</small><b>{totalStockUnits}</b></span>
             </div>
             <div
               className={`k3 ${stockFilter === "low" ? "active-kpi" : ""}`}
@@ -3416,24 +3327,6 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
   }, [autoPrint]);
 
   const markPaid = () => {
-    const session = (() => {
-      try { return JSON.parse(localStorage.getItem("cafe_collection_session") || "null"); }
-      catch { return null; }
-    })();
-    if (collectionActive && session?.active) {
-      const ledger = (() => {
-        try { return JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); }
-        catch { return []; }
-      })();
-      const saleId = `TABLE-${table.sessionId || table.id}`;
-      if (!ledger.some((sale) => sale.id === saleId)) {
-        const total = Number(bill.total || 0);
-        localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
-          id: saleId, sessionId: session.sessionId, source: "Table", sourceId: saleId,
-          tableId: table.id, amount: total, paymentMethod, createdAt: new Date().toISOString()
-        }]));
-      }
-    }
     onUpdateTable(table.id, (current) => ({ ...current, paymentStatus: "Paid", paymentMethod }));
   };
 
@@ -3572,16 +3465,6 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
       const sales = JSON.parse(localStorage.getItem("cafe_normal_sales") || "[]");
       const movements = JSON.parse(localStorage.getItem("cafe_stock_movements") || "[]");
       localStorage.setItem("cafe_normal_sales", JSON.stringify([...sales, sale]));
-      const collection = JSON.parse(localStorage.getItem("cafe_collection_session") || "null");
-      if (collection?.active) {
-        const ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]");
-        if (!ledger.some((entry) => entry.id === sale.id)) {
-          localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
-            id: sale.id, sessionId: collection.sessionId, source: "Counter",
-            sourceId: sale.id, amount: total, paymentMethod, createdAt: sale.createdAt
-          }]));
-        }
-      }
       localStorage.setItem("cafe_stock_movements", JSON.stringify([
         ...movements,
         ...selected.map((product) => ({ id: `MOVE-${Date.now()}-${product.id}`, saleId: sale.id, productId: product.id, quantity: -cart[product.id], createdAt: sale.createdAt }))
@@ -3636,9 +3519,8 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
   );
 }
 
-function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, collectionActive, archivedBills = [] }) {
+function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, collectionActive }) {
   const [billTableId, setBillTableId] = useState(null);
-  const [archivedBill, setArchivedBill] = useState(null);
   const [autoPrintId, setAutoPrintId] = useState(null);
   const [showNormalSale, setShowNormalSale] = useState(false);
   const [saleNotice, setSaleNotice] = useState("");
@@ -3759,21 +3641,24 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                   👁️ VIEW BILL
                 </button>
               )}
+              <button
+                type="button"
+                className="btn-save"
+                onClick={() => { setAutoPrintId(table.id); setBillTableId(table.id); }}
+                disabled={(table.orders || []).length === 0}
+                style={{ width: "100%" }}
+              >
+                🖨️ Print Bill
+              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                <button type="button" className="btn-save" onClick={() => openEditTable(table)}>Edit Table</button>
+                <button type="button" className="btn-cancel" onClick={() => deleteTable(table)} disabled={occupied || (table.orders || []).length > 0 || table.paymentStatus === "Paid"}>Delete</button>
+              </div>
               <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || currentUser?.role !== "admin"}>Mark as Free</button>
             </article>
           );
         })}
       </div>
-      {archivedBill && (
-        <BillPreview
-          table={archivedBill.table}
-          index={0}
-          onClose={() => setArchivedBill(null)}
-          onUpdateTable={() => {}}
-          onAddKitchenOrder={onAddKitchenOrder}
-          collectionActive={false}
-        />
-      )}
       {billTableId && (
         <BillPreview
           table={tables.find((table) => table.id === billTableId)}
@@ -5068,15 +4953,6 @@ export default function App() {
       return { active: false, startedAt: null, stoppedAt: null, finalSummary: null };
     }
   });
-  const [archivedBills, setArchivedBills] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("cafe_previous_bills") || "[]");
-      return Array.isArray(saved) ? saved : [];
-    } catch { return []; }
-  });
-  useEffect(() => {
-    localStorage.setItem("cafe_previous_bills", JSON.stringify(archivedBills));
-  }, [archivedBills]);
   useEffect(() => {
     localStorage.setItem("cafe_table_statuses", JSON.stringify(tables));
   }, [tables]);
@@ -5118,11 +4994,10 @@ export default function App() {
       status: row.status || "new"
     });
 
-   const applyIncomingOrder = (row) => {
-  if (!active || !row?.id) return;
-  if (row.collection_id !== collection.sessionId) return;
+    const applyIncomingOrder = (row) => {
+      if (!active || !row?.id) return;
+      const ticket = toKitchenTicket(row);
 
-  const ticket = toKitchenTicket(row);
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
         playKitchenDing();
@@ -5185,23 +5060,18 @@ export default function App() {
     // Served orders must remain in the running bill so a customer's later
     // order at the same table is combined with their earlier orders.
     const loadPendingOrders = async () => {
-  if (!collection.sessionId) return;
+      const { data, error } = await supabase
+        .from("cafe_kitchen_orders")
+        .select("*")
+        .order("created_at", { ascending: true });
 
-  const { data, error } = await supabase
-    .from("cafe_kitchen_orders")
-    .select("*")
-    .eq("collection_id", collection.sessionId)
-    .order("created_at", { ascending: true });
+      if (error) {
+        console.error("Unable to load QR kitchen orders:", error);
+        return;
+      }
+      if (active) (data || []).forEach(applyIncomingOrder);
+    };
 
-  if (error) {
-    console.error("Unable to load QR kitchen orders:", error);
-    return;
-  }
-
-  if (active) {
-    (data || []).forEach(applyIncomingOrder);
-  }
-};
     loadPendingOrders();
 
     const channel = supabase
@@ -5209,11 +5079,7 @@ export default function App() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "cafe_kitchen_orders" },
-        (payload) => {
-  if (payload.new.collection_id === collection.sessionId) {
-    applyIncomingOrder(payload.new);
-  }
-}
+        (payload) => applyIncomingOrder(payload.new)
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -5225,7 +5091,7 @@ export default function App() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [collection.sessionId]);
+  }, []);
 
   const [liveNotification, setLiveNotification] = useState(null);
 
@@ -5284,74 +5150,20 @@ export default function App() {
   };
 
   const startCollection = () => {
-    if (collection.active) return;
-    const now = new Date().toISOString();
-    const previous = [];
-    tables.forEach((table) => {
-      const history = Array.isArray(table.sessionHistory) ? table.sessionHistory : [];
-      history.forEach((snapshot) => {
-        if ((snapshot.orders || []).length) {
-          previous.push({
-            id: `BILL-${snapshot.sessionId || table.id}-${snapshot.closedAt || snapshot.seatedAt || now}`,
-            tableName: snapshot.displayName || snapshot.name || table.name || table.id,
-            closedAt: snapshot.closedAt || now,
-            table: { ...snapshot, status: "Free" }
-          });
-        }
-      });
-      if ((table.orders || []).length) {
-        previous.push({
-          id: `BILL-${table.sessionId || table.id}-${now}`,
-          tableName: table.displayName || table.name || table.id,
-          closedAt: now,
-          table: { ...table, status: "Free" }
-        });
-      }
-    });
-    if (previous.length) {
-      setArchivedBills((current) => {
-        const known = new Set(current.map((bill) => bill.id));
-        return [...current, ...previous.filter((bill) => !known.has(bill.id))];
-      });
-    }
-    setTables((current) => current.map((table) => ({
-      ...table,
-      status: "Free",
-      guests: 0,
-      seatedAt: "—",
-      order: [],
-      orders: [],
-      customer: null,
-      sessionId: null,
-      paymentStatus: "Unpaid",
-      paymentMethod: null
-    })));
-    setCollection({
-      active: true,
-      sessionId: `COL-${Date.now()}`,
-      startedAt: now,
-      stoppedAt: null,
-      finalSummary: null
-    });
+    setCollection((current) => current.active
+      ? current
+      : { active: true, startedAt: new Date().toISOString(), stoppedAt: null, finalSummary: null });
   };
 
   const stopCollection = () => {
     if (!collection.active || !window.confirm("Are you sure you want to stop this collection?")) return;
-    let ledger = [];
-    try { ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); } catch { ledger = []; }
-    const sessionSales = ledger.filter((sale) => sale.sessionId === collection.sessionId);
-    const amount = sessionSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-    const orders = sessionSales.length;
-    const paymentBreakdown = sessionSales.reduce((result, sale) => {
-      const mode = sale.paymentMethod || "Cash";
-      result[mode] = (result[mode] || 0) + Number(sale.amount || 0);
-      return result;
-    }, {});
+    const orders = tables.reduce((count, table) => count + (table.order || []).length, 0);
+    const amount = tables.reduce((sum, table) => sum + (table.order || []).reduce((tableSum, item) => tableSum + (Number(item[1]) * Number(item[2])), 0), 0);
     setCollection((current) => ({
       ...current,
       active: false,
       stoppedAt: new Date().toISOString(),
-      finalSummary: { orders, amount, paymentBreakdown, sessionId: current.sessionId }
+      finalSummary: { orders, amount }
     }));
   };
 
@@ -5374,16 +5186,15 @@ export default function App() {
   // 1. Customer table order view (QR scan) doesn't require cafe staff login
   if (root === "order") {
     page = (
-     <CustomerOrderView
-  tableId={sub}
-  go={go}
-  tables={tables}
-  setTables={setTables}
-  kitchenOrders={kitchenOrders}
-  onSendKitchenOrder={triggerKitchenOrder}
-  collectionActive={collection.active}
-  collectionSessionId={collection.sessionId}
-/>
+      <CustomerOrderView
+        tableId={sub}
+        go={go}
+        tables={tables}
+        setTables={setTables}
+        kitchenOrders={kitchenOrders}
+        onSendKitchenOrder={triggerKitchenOrder}
+        collectionActive={collection.active}
+      />
     );
   }
   // 2. If not logged in or on /login route, show Multi-Role Login (Admin, Supplier, Kitchen)
@@ -5393,7 +5204,7 @@ export default function App() {
   // 3. Authenticated routes
   else {
     if (root === "review") {
-      page = <Review go={go} sub={sub} collectionActive={collection.active} collection={collection} />;
+      page = <Review go={go} sub={sub} collectionActive={collection.active} />;
     } else if (root === "glossary") {
       page = <Glossary go={go} sub={sub} currentUser={currentUser} />;
     } else if (root === "tables") {
@@ -5404,7 +5215,6 @@ export default function App() {
           currentUser={currentUser}
           onAddKitchenOrder={triggerKitchenOrder}
           collectionActive={collection.active}
-          archivedBills={archivedBills}
         />
       );
     } else if (root === "kitchen") {
