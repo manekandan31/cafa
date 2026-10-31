@@ -321,7 +321,7 @@ function TableQRModal({ table, tables, onClose, onOpenMobileView, onOpenAllModal
   const [viewMode, setViewMode] = useState("tent"); // "tent" | "sticker"
   if (!table) return null;
 
-  const orderUrl = `${window.location.origin}${window.location.pathname}#/order/${table.id}`;
+  const orderUrl = `https://cafa-ruddy.vercel.app/#/order/${table.id}`;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(orderUrl);
@@ -515,7 +515,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 
         <div className="modal-body all-stickers-sheet" style={{ flex: 1, overflowY: "auto", padding: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
           {tables.map((t) => {
-            const tableOrderUrl = `${window.location.origin}${window.location.pathname}#/order/${t.id}`;
+            const tableOrderUrl = `https://cafa-ruddy.vercel.app/#/order/${t.id}`;
             return (
               <div key={t.id} className="table-sticker-card">
                 <div className="sticker-cut-border">
