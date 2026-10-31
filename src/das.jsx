@@ -3764,33 +3764,6 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
           );
         })}
       </div>
-      <section className="card" style={{ padding: 16, marginTop: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, color: "#0b3a78" }}>🧾 Previous Bills</h3>
-          <span style={{ color: "#64748b", fontSize: 12 }}>{archivedBills.length} saved bills</span>
-        </div>
-        {archivedBills.length === 0 ? (
-          <p style={{ color: "#64748b", marginBottom: 0 }}>No previous bills yet. Paid table bills will appear here when a new collection starts.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {[...archivedBills].reverse().map((entry) => {
-              const archivedTotal = calculateBill(entry.table).total;
-              return (
-                <div key={entry.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff" }}>
-                  <div>
-                    <b>{entry.tableName}</b>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>{new Date(entry.closedAt).toLocaleString()} · {entry.table?.paymentStatus || "Bill saved"}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <b>{inr(archivedTotal)}</b>
-                    <button type="button" className="btn-save" onClick={() => setArchivedBill(entry)}>View Bill</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
       {archivedBill && (
         <BillPreview
           table={archivedBill.table}
