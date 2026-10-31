@@ -321,7 +321,7 @@ function TableQRModal({ table, tables, onClose, onOpenMobileView, onOpenAllModal
   const [viewMode, setViewMode] = useState("tent"); // "tent" | "sticker"
   if (!table) return null;
 
-  const orderUrl = `${window.location.origin}${window.location.pathname}#/order/${table.id}`;
+  const orderUrl = `https://cafa-ruddy.vercel.app/#/order/${table.id}`;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(orderUrl);
@@ -515,7 +515,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 
         <div className="modal-body all-stickers-sheet" style={{ flex: 1, overflowY: "auto", padding: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
           {tables.map((t) => {
-            const tableOrderUrl = `${window.location.origin}${window.location.pathname}#/order/${t.id}`;
+            const tableOrderUrl = `https://cafa-ruddy.vercel.app/#/order/${t.id}`;
             return (
               <div key={t.id} className="table-sticker-card">
                 <div className="sticker-cut-border">
@@ -568,7 +568,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 }
 
 /* ---------- Customer Mobile Self-Ordering View (#/order/:tableId) ---------- */
-function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive }) {
+function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive,collectionSessionId }) {
   const currentTable = tables.find((t) => t.id === tableId) || tables[0] || { id: "T1", name: "Table 1" };
   const [selectedCat, setSelectedCat] = useState("All");
   const [cart, setCart] = useState({});
@@ -707,20 +707,21 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   // Send a kitchen-safe copy to Supabase for cross-device sync.
   // Customer phone numbers remain in the private cafe_orders table.
   const { error } = await supabase
-    .from("cafe_kitchen_orders")
-    .insert({
-      id: newTicket.id,
-      kot_number: newTicket.id,
-      table_id: newTicket.tableId,
-      table_name: newTicket.tableName,
-      items: newTicket.items,
-      special_notes: newTicket.specialNotes,
-      status: newTicket.status,
-      source: "QR Code",
-      customer_name: customerName.trim(),
-      customer_phone: normalizePhone(customerPhone),
-      created_at: new Date(newTicket.timestamp).toISOString()
-    });
+  .from("cafe_kitchen_orders")
+  .insert({
+    id: newTicket.id,
+    kot_number: newTicket.id,
+    table_id: newTicket.tableId,
+    table_name: newTicket.tableName,
+    items: newTicket.items,
+    special_notes: newTicket.specialNotes,
+    status: newTicket.status,
+    source: "QR Code",
+    customer_name: customerName.trim(),
+customer_phone: normalizePhone(customerPhone),
+collection_id: collectionSessionId,
+created_at: new Date(newTicket.timestamp).toISOString()
+  });
 
   if (error) {
     console.error("Supabase kitchen order error:", error);
@@ -3763,33 +3764,6 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
           );
         })}
       </div>
-      <section className="card" style={{ padding: 16, marginTop: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, color: "#0b3a78" }}>🧾 Previous Bills</h3>
-          <span style={{ color: "#64748b", fontSize: 12 }}>{archivedBills.length} saved bills</span>
-        </div>
-        {archivedBills.length === 0 ? (
-          <p style={{ color: "#64748b", marginBottom: 0 }}>No previous bills yet. Paid table bills will appear here when a new collection starts.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {[...archivedBills].reverse().map((entry) => {
-              const archivedTotal = calculateBill(entry.table).total;
-              return (
-                <div key={entry.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, background: "#fff" }}>
-                  <div>
-                    <b>{entry.tableName}</b>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>{new Date(entry.closedAt).toLocaleString()} · {entry.table?.paymentStatus || "Bill saved"}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <b>{inr(archivedTotal)}</b>
-                    <button type="button" className="btn-save" onClick={() => setArchivedBill(entry)}>View Bill</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
       {archivedBill && (
         <BillPreview
           table={archivedBill.table}
@@ -5144,10 +5118,11 @@ export default function App() {
       status: row.status || "new"
     });
 
-    const applyIncomingOrder = (row) => {
-      if (!active || !row?.id) return;
-      const ticket = toKitchenTicket(row);
+   const applyIncomingOrder = (row) => {
+  if (!active || !row?.id) return;
+  if (row.collection_id !== collection.sessionId) return;
 
+  const ticket = toKitchenTicket(row);
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
         playKitchenDing();
@@ -5210,18 +5185,23 @@ export default function App() {
     // Served orders must remain in the running bill so a customer's later
     // order at the same table is combined with their earlier orders.
     const loadPendingOrders = async () => {
-      const { data, error } = await supabase
-        .from("cafe_kitchen_orders")
-        .select("*")
-        .order("created_at", { ascending: true });
+  if (!collection.sessionId) return;
 
-      if (error) {
-        console.error("Unable to load QR kitchen orders:", error);
-        return;
-      }
-      if (active) (data || []).forEach(applyIncomingOrder);
-    };
+  const { data, error } = await supabase
+    .from("cafe_kitchen_orders")
+    .select("*")
+    .eq("collection_id", collection.sessionId)
+    .order("created_at", { ascending: true });
 
+  if (error) {
+    console.error("Unable to load QR kitchen orders:", error);
+    return;
+  }
+
+  if (active) {
+    (data || []).forEach(applyIncomingOrder);
+  }
+};
     loadPendingOrders();
 
     const channel = supabase
@@ -5229,7 +5209,11 @@ export default function App() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "cafe_kitchen_orders" },
-        (payload) => applyIncomingOrder(payload.new)
+        (payload) => {
+  if (payload.new.collection_id === collection.sessionId) {
+    applyIncomingOrder(payload.new);
+  }
+}
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -5241,7 +5225,7 @@ export default function App() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [collection.sessionId]);
 
   const [liveNotification, setLiveNotification] = useState(null);
 
@@ -5390,15 +5374,16 @@ export default function App() {
   // 1. Customer table order view (QR scan) doesn't require cafe staff login
   if (root === "order") {
     page = (
-      <CustomerOrderView
-        tableId={sub}
-        go={go}
-        tables={tables}
-        setTables={setTables}
-        kitchenOrders={kitchenOrders}
-        onSendKitchenOrder={triggerKitchenOrder}
-        collectionActive={collection.active}
-      />
+     <CustomerOrderView
+  tableId={sub}
+  go={go}
+  tables={tables}
+  setTables={setTables}
+  kitchenOrders={kitchenOrders}
+  onSendKitchenOrder={triggerKitchenOrder}
+  collectionActive={collection.active}
+  collectionSessionId={collection.sessionId}
+/>
     );
   }
   // 2. If not logged in or on /login route, show Multi-Role Login (Admin, Supplier, Kitchen)
