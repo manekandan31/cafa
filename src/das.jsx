@@ -5284,7 +5284,6 @@ export default function App() {
   };
 
   const startCollection = () => {
-    if (collection.active) return;
     const now = new Date().toISOString();
     const previous = [];
     tables.forEach((table) => {
@@ -5323,6 +5322,8 @@ export default function App() {
       orders: [],
       customer: null,
       sessionId: null,
+      sessionHistory: [],
+      qrCount: 0,
       paymentStatus: "Unpaid",
       paymentMethod: null
     })));
