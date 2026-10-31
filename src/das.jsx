@@ -5118,11 +5118,7 @@ export default function App() {
       status: row.status || "new"
     });
 
-   const applyIncomingOrder = (row) => {
-  if (!active || !row?.id) return;
-  if (row.collection_id !== collection.sessionId) return;
-
-  const ticket = toKitchenTicket(row);
+   
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
         playKitchenDing();
@@ -5284,6 +5280,7 @@ export default function App() {
   };
 
   const startCollection = () => {
+    if (collection.active) return;
     const now = new Date().toISOString();
     const previous = [];
     tables.forEach((table) => {
@@ -5322,8 +5319,6 @@ export default function App() {
       orders: [],
       customer: null,
       sessionId: null,
-      sessionHistory: [],
-      qrCount: 0,
       paymentStatus: "Unpaid",
       paymentMethod: null
     })));
