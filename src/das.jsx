@@ -568,7 +568,7 @@ function AllTablesQRModal({ tables, onClose, onOpenMobileView }) {
 }
 
 /* ---------- Customer Mobile Self-Ordering View (#/order/:tableId) ---------- */
-function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive }) {
+function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrders = [], onSendKitchenOrder, collectionActive,collectionSessionId }) {
   const currentTable = tables.find((t) => t.id === tableId) || tables[0] || { id: "T1", name: "Table 1" };
   const [selectedCat, setSelectedCat] = useState("All");
   const [cart, setCart] = useState({});
@@ -707,20 +707,21 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   // Send a kitchen-safe copy to Supabase for cross-device sync.
   // Customer phone numbers remain in the private cafe_orders table.
   const { error } = await supabase
-    .from("cafe_kitchen_orders")
-    .insert({
-      id: newTicket.id,
-      kot_number: newTicket.id,
-      table_id: newTicket.tableId,
-      table_name: newTicket.tableName,
-      items: newTicket.items,
-      special_notes: newTicket.specialNotes,
-      status: newTicket.status,
-      source: "QR Code",
-      customer_name: customerName.trim(),
-      customer_phone: normalizePhone(customerPhone),
-      created_at: new Date(newTicket.timestamp).toISOString()
-    });
+  .from("cafe_kitchen_orders")
+  .insert({
+    id: newTicket.id,
+    kot_number: newTicket.id,
+    table_id: newTicket.tableId,
+    table_name: newTicket.tableName,
+    items: newTicket.items,
+    special_notes: newTicket.specialNotes,
+    status: newTicket.status,
+    source: "QR Code",
+    customer_name: customerName.trim(),
+customer_phone: normalizePhone(customerPhone),
+collection_id: collectionSessionId,
+created_at: new Date(newTicket.timestamp).toISOString()
+  });
 
   if (error) {
     console.error("Supabase kitchen order error:", error);
@@ -5210,18 +5211,23 @@ export default function App() {
     // Served orders must remain in the running bill so a customer's later
     // order at the same table is combined with their earlier orders.
     const loadPendingOrders = async () => {
-      const { data, error } = await supabase
-        .from("cafe_kitchen_orders")
-        .select("*")
-        .order("created_at", { ascending: true });
+  if (!collection.sessionId) return;
 
-      if (error) {
-        console.error("Unable to load QR kitchen orders:", error);
-        return;
-      }
-      if (active) (data || []).forEach(applyIncomingOrder);
-    };
+  const { data, error } = await supabase
+    .from("cafe_kitchen_orders")
+    .select("*")
+    .eq("collection_id", collection.sessionId)
+    .order("created_at", { ascending: true });
 
+  if (error) {
+    console.error("Unable to load QR kitchen orders:", error);
+    return;
+  }
+
+  if (active) {
+    (data || []).forEach(applyIncomingOrder);
+  }
+};
     loadPendingOrders();
 
     const channel = supabase
@@ -5229,7 +5235,11 @@ export default function App() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "cafe_kitchen_orders" },
-        (payload) => applyIncomingOrder(payload.new)
+        (payload) => {
+  if (payload.new.collection_id === collection.sessionId) {
+    applyIncomingOrder(payload.new);
+  }
+}
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -5390,15 +5400,16 @@ export default function App() {
   // 1. Customer table order view (QR scan) doesn't require cafe staff login
   if (root === "order") {
     page = (
-      <CustomerOrderView
-        tableId={sub}
-        go={go}
-        tables={tables}
-        setTables={setTables}
-        kitchenOrders={kitchenOrders}
-        onSendKitchenOrder={triggerKitchenOrder}
-        collectionActive={collection.active}
-      />
+     <CustomerOrderView
+  tableId={sub}
+  go={go}
+  tables={tables}
+  setTables={setTables}
+  kitchenOrders={kitchenOrders}
+  onSendKitchenOrder={triggerKitchenOrder}
+  collectionActive={collection.active}
+  collectionSessionId={collection.sessionId}
+/>
     );
   }
   // 2. If not logged in or on /login route, show Multi-Role Login (Admin, Supplier, Kitchen)
