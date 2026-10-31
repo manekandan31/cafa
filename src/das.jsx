@@ -5118,10 +5118,11 @@ export default function App() {
       status: row.status || "new"
     });
 
-    const applyIncomingOrder = (row) => {
-      if (!active || !row?.id) return;
-      const ticket = toKitchenTicket(row);
+   const applyIncomingOrder = (row) => {
+  if (!active || !row?.id) return;
+  if (row.collection_id !== collection.sessionId) return;
 
+  const ticket = toKitchenTicket(row);
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
         playKitchenDing();
@@ -5224,7 +5225,7 @@ export default function App() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [collection.sessionId]);
 
   const [liveNotification, setLiveNotification] = useState(null);
 
