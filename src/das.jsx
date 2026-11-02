@@ -142,6 +142,9 @@ const STK0 = MENU_ITEMS.map((item, index) => [
 ]);
 const MENU_VERSION = "cafe-losako-menu-v1";
 const VENDOR_STORAGE_KEY = "cafe_vendors";
+const ADMIN_AUTH_VERSION = "admin-auth-v2";
+const ADMIN_USERNAME = "cafe losako";
+const ADMIN_PASSWORD = "losako@5km";
 
 /* ---------- Default Dine-in Tables Data (Table Revenue & Income) ---------- */
 /* ---------- Default Dine-in Tables Data (5 Tables G + 5 Tables C) ---------- */
@@ -1888,8 +1891,8 @@ function TableModal({ table, onClose, onSave }) {
 /* ---------- Admin Login Portal ---------- */
 function LoginView({ onLogin }) {
   const [activeRole, setActiveRole] = useState("admin");
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState(ADMIN_USERNAME);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const ROLES = [
@@ -1903,8 +1906,7 @@ function LoginView({ onLogin }) {
       accent: "#3b82f6",
       gradient: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)",
       icon: "👑",
-      defaultUser: "admin",
-      defaultPass: "admin123",
+      defaultUser: ADMIN_USERNAME,
       landingRoute: "/",
       landingName: "Cafe Home Dashboard",
       highlights: [
@@ -1922,7 +1924,7 @@ function LoginView({ onLogin }) {
     const r = ROLES.find((x) => x.id === roleId);
     if (r) {
       setUsername(r.defaultUser);
-      setPassword(r.defaultPass);
+      setPassword("");
     }
   };
 
@@ -1941,33 +1943,14 @@ function LoginView({ onLogin }) {
     let displayName = "";
 
     if (activeRole === "admin") {
-      if (u === "admin" || u === "owner" || u === "manager") {
+      if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
         valid = true;
-        displayName = "Admin Manager";
-      } else {
-        valid = p.length > 0;
-        displayName = username;
-      }
-    } else if (activeRole === "supplier") {
-      if (u === "supplier" || u === "suplyer" || u === "vendor") {
-        valid = true;
-        displayName = "Supplier Partner";
-      } else {
-        valid = p.length > 0;
-        displayName = username;
-      }
-    } else if (activeRole === "kitchen") {
-      if (u === "kitchen" || u === "chef" || u === "cook") {
-        valid = true;
-        displayName = "Kitchen Head Chef";
-      } else {
-        valid = p.length > 0;
-        displayName = username;
+        displayName = "Cafe Losako Admin";
       }
     }
 
-    if (!valid && p.length < 3) {
-      setError(`Invalid credentials for ${current.title}. You can click "⚡ 1-Click Login" or use demo credentials.`);
+    if (!valid) {
+      setError("Invalid admin username or password.");
       return;
     }
 
@@ -1976,18 +1959,8 @@ function LoginView({ onLogin }) {
       role: activeRole,
       name: displayName || current.title,
       username: u,
-      landingRoute: current.landingRoute
-    });
-  };
-
-  const handleInstantLogin = (roleId) => {
-    const r = ROLES.find((x) => x.id === roleId);
-    if (!r) return;
-    onLogin({
-      role: r.id,
-      name: r.id === "admin" ? "Admin Manager" : r.id === "supplier" ? "Supplier Partner" : "Kitchen Head Chef",
-      username: r.defaultUser,
-      landingRoute: r.landingRoute
+      landingRoute: current.landingRoute,
+      authVersion: ADMIN_AUTH_VERSION
     });
   };
 
@@ -2056,18 +2029,6 @@ function LoginView({ onLogin }) {
                   {isSelected ? `● Selected (${role.title})` : `Select ${role.title}`}
                 </button>
 
-                <button
-                  type="button"
-                  className="btn-instant-login"
-                  style={{ borderColor: role.color, color: role.color }}
-                  title={`Directly login as ${role.title} with 1 click`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleInstantLogin(role.id);
-                  }}
-                >
-                  ⚡ 1-Click Login
-                </button>
               </div>
             </div>
           );
@@ -2119,26 +2080,6 @@ function LoginView({ onLogin }) {
             </div>
           </div>
 
-          <div className="quick-credentials-hint">
-            <span>🔑 Demo Login Hint:</span>
-            <button
-              type="button"
-              className="cred-pill"
-              onClick={() => { setUsername(currentRole.defaultUser); setPassword(currentRole.defaultPass); setError(""); }}
-            >
-              Fill <b>{currentRole.defaultUser}</b> / <b>{currentRole.defaultPass}</b>
-            </button>
-            {activeRole === "supplier" && (
-              <button
-                type="button"
-                className="cred-pill"
-                onClick={() => { setUsername("suplyer"); setPassword("supplier123"); setError(""); }}
-              >
-                Fill <b>suplyer</b> / <b>supplier123</b>
-              </button>
-            )}
-          </div>
-
           <div className="form-submit-row">
             <button
               type="submit"
@@ -2149,13 +2090,6 @@ function LoginView({ onLogin }) {
               <span>Sign In as {currentRole.title} ➔</span>
             </button>
 
-            <button
-              type="button"
-              className="btn-instant-alt"
-              onClick={() => handleInstantLogin(activeRole)}
-            >
-              ⚡ Fast 1-Click Sign In
-            </button>
           </div>
         </form>
       </div>
@@ -5658,7 +5592,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem("cafe_auth_user");
       const user = saved ? JSON.parse(saved) : null;
-      return user?.role === "admin" ? user : null;
+      return user?.role === "admin" && user?.authVersion === ADMIN_AUTH_VERSION ? user : null;
     } catch {
       return null;
     }
