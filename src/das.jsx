@@ -5590,22 +5590,16 @@ export default function App() {
   // Authenticated user state: { role: 'admin' | 'supplier' | 'kitchen', name: '...', username: '...' }
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem("cafe_auth_user");
-      const user = saved ? JSON.parse(saved) : null;
-      return user?.role === "admin" && user?.authVersion === ADMIN_AUTH_VERSION ? user : null;
+      localStorage.removeItem("cafe_auth_user");
     } catch {
-      return null;
+      console.error("Unable to clear persisted login state.");
     }
+    return null;
   });
 
   const handleLogin = (user) => {
     if (user.role !== "admin") return;
     setCurrentUser(user);
-    try {
-      localStorage.setItem("cafe_auth_user", JSON.stringify(user));
-    } catch {
-      console.error("Unable to persist login state.");
-    }
 
     if (user.landingRoute) {
       go(user.landingRoute);
