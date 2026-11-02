@@ -2179,7 +2179,7 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
           </div>
           <div className="dash-card-content">
             <div className="dash-card-tag">SUPPLY CHAIN & STOCKS</div>
-            <h3 className="dash-card-title">GLOSSARY</h3>
+            <h3 className="dash-card-title">GROCERY</h3>
             <p className="dash-card-desc">Suppliers & vendor directories, stock levels, raw ingredients replenishment and item catalogs.</p>
             <div className="dash-card-btn" style={{ color: "#059669" }}>
               <span>Manage Vendors & Stock</span>
@@ -2317,10 +2317,10 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const salaryAmts = [600, 800, 500, 750, 900];
     const otherAmts = [150, 280, 200, 350, 180, 240];
     const vendorReasons = [
-      "DairyLand fresh milk & cream",
-      "GrainMart Arabica beans & syrups",
-      "FreshFoods vegetables & fruits",
-      "Bakery supplies & butter"
+      "Nila Vegetables Auroville",
+      "Trust Food Auroville",
+      "Nila Sea Foods",
+      "Chicken & Egg Supplier",
     ];
     const salaryReasons = [
       "Barista & Kitchen Staff Daily Wage",
