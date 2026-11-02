@@ -2366,14 +2366,52 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const todayLedger = [...dailySales, ...currentTableSales];
   const salesCash = todayLedger.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const salesGPay = todayLedger.filter((sale) => ["gpay", "google pay", "upi"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const collectionSales = [...activeSessionSales, ...currentTableSales];
-  const collectionCash = collectionSales
+  const lifetimeSales = (() => {
+    const records = [];
+    const knownIds = new Set();
+    const addRecord = (sale, id) => {
+      const key = id || sale.id;
+      if (!key || knownIds.has(key) || Number(sale.amount || sale.total || 0) <= 0) return;
+      knownIds.add(key);
+      records.push({
+        ...sale,
+        amount: Number(sale.amount ?? sale.total ?? 0),
+        paymentMethod: sale.paymentMethod || "Cash"
+      });
+    };
+
+    normalSales.forEach((sale) => {
+      if (sale.paymentStatus === "Paid") addRecord(sale, sale.id);
+    });
+    salesLedger.forEach((sale) => addRecord(sale, sale.id || sale.sourceId));
+    tables.forEach((table) => {
+      if (table.paymentStatus === "Paid") {
+        const saleId = `TABLE-${table.sessionId || table.id}`;
+        addRecord({
+          id: saleId,
+          amount: calculateBill(table).total,
+          paymentMethod: table.paymentMethod
+        }, saleId);
+      }
+      (table.sessionHistory || []).forEach((snapshot) => {
+        if (snapshot.paymentStatus !== "Paid") return;
+        const saleId = `TABLE-${snapshot.sessionId || table.id}`;
+        addRecord({
+          id: saleId,
+          amount: snapshot.closedAmount ?? calculateBill(snapshot).total,
+          paymentMethod: snapshot.paymentMethod
+        }, saleId);
+      });
+    });
+    return records;
+  })();
+  const lifetimeCash = lifetimeSales
     .filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash")
-    .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const collectionGPay = collectionSales
+    .reduce((sum, sale) => sum + sale.amount, 0);
+  const lifetimeGPay = lifetimeSales
     .filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase()))
-    .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const totalCollectionIncome = collectionCash + collectionGPay;
+    .reduce((sum, sale) => sum + sale.amount, 0);
+  const lifetimeIncome = lifetimeCash + lifetimeGPay;
   const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
   const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
   const netCash = salesCash - expenseCash;
@@ -2504,7 +2542,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total Cash:</span>
-                        <b style={{ color: "#15803d" }}>+{inr(collectionCash)}</b>
+                        <b style={{ color: "#15803d" }}>+{inr(lifetimeCash)}</b>
                       </div>
                     </div>
                   </div>
@@ -2518,14 +2556,14 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total GPay / Online:</span>
-                        <b style={{ color: "#7e22ce" }}>+{inr(collectionGPay)}</b>
+                        <b style={{ color: "#7e22ce" }}>+{inr(lifetimeGPay)}</b>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
                   <span style={{ color: "#475569", fontWeight: 700 }}>Total Collection Income:</span>
-                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(totalCollectionIncome)}</b>
+                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(lifetimeIncome)}</b>
                 </div>
               </div>
             </div>
