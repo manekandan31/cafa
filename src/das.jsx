@@ -5921,18 +5921,6 @@ export default function App() {
 
   return (
     <Window back={back} currentUser={currentUser} onLogout={handleLogout}>
-      {liveNotification && currentUser && (currentUser.role === "kitchen" || currentUser.role === "admin") && (
-        <div className="kitchen-live-banner" onClick={() => go("/kitchen")} title="Click to view in Kitchen Display">
-          <div className="banner-left">
-            <span className="bell-anim">🔔</span>
-            <div>
-              <b>NEW ORDER SENT TO KITCHEN!</b>
-              <span>{liveNotification.tableName} · Ticket #{liveNotification.ticketId} ({liveNotification.itemCount} items)</span>
-            </div>
-          </div>
-          <button type="button" className="banner-cta">Open Kitchen KDS ➔</button>
-        </div>
-      )}
       {page}
     </Window>
   );
