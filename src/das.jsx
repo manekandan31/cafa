@@ -400,7 +400,7 @@ function Window({ children, back, currentUser, onLogout }) {
             {back ? <button className="bk" onClick={back}>‹ Back</button> : null}
             <div className="cafe-window-title">
               <span style={{ fontSize: 16 }}>☕</span>
-              <span>ESPRESSO & CO. CAFE</span>
+              <span>CAFE LOSAKO</span>
             </div>
           </div>
 
@@ -1972,7 +1972,7 @@ function LoginView({ onLogin }) {
       <div className="login-brand-header">
         <div className="brand-logo-pill">
           <span className="brand-icon">☕</span>
-          <span className="brand-name">ESPRESSO & CO.</span>
+          <span className="brand-name">CAFE LOSAKO</span>
           <span className="brand-sub">PORTAL</span>
         </div>
         <h1 className="login-main-title">Select Login Role</h1>
@@ -2845,7 +2845,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                 return (
                   <>
                     <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 14 }}>
-                      <div style={{ textAlign: "center", fontWeight: 900, color: "#075c35", marginBottom: 12 }}>ESPRESSO & CO. CAFE<br /><span style={{ color: "#334155", fontSize: 13 }}>{reportMode === "monthly" ? title : `Daily Sales Report — ${dl}`}</span></div>
+                      <div style={{ textAlign: "center", fontWeight: 900, color: "#075c35", marginBottom: 12 }}>CAFE LOSAKO<br /><span style={{ color: "#334155", fontSize: 13 }}>{reportMode === "monthly" ? title : `Daily Sales Report — ${dl}`}</span></div>
                       {reportMode === "daily" && !selectedReport.sales.length && !selectedReport.expenses ? <div style={{ textAlign: "center", color: "#64748b", fontWeight: 700, padding: 32 }}>No sales records available.</div> : <div className="pe-summary">
                         {reportRows(report, title).slice(1, 8).map(([label, value]) => <div className="pe-summary-row" key={label}><span>{label}</span><b>{typeof value === "number" && label !== "Total Bills" && label !== "Items Sold" ? inr(value) : value}</b></div>)}
                         {reportMode === "daily" && <><div className="hl" style={{ marginTop: 12 }}>Hourly Sales ({dl})</div><Chart v={hourly(cal.d)} /></>}
@@ -3777,7 +3777,7 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
       <div className="bill-print-area" style={{ background: "#fff", borderRadius: 12, width: "min(100%, 560px)", maxHeight: "92vh", overflowY: "auto", padding: 22, boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
           <div>
-            <h2 style={{ margin: 0, color: "#0b3a78" }}>ESPRESSO & CO. CAFE</h2>
+            <h2 style={{ margin: 0, color: "#0b3a78" }}>CAFE LOSAKO</h2>
             <div style={{ fontSize: 12, color: "#64748b" }}>Receipt / Combined Table Bill</div>
           </div>
           <button type="button" onClick={onClose} className="sheet-close">✕</button>
