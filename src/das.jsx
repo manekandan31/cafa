@@ -97,6 +97,35 @@ const INITIAL_TABLES = TABLES0.map((table) => ({
 }));
 
 const normalizeTables = (saved) => {
+  const activeOrdersReset = localStorage.getItem("cafe_active_orders_reset_v2") === "1";
+  if (!activeOrdersReset) {
+    localStorage.setItem("cafe_active_orders_reset_v2", "1");
+    if (!Array.isArray(saved) || saved.length === 0) {
+      return INITIAL_TABLES.map((table) => ({
+        ...table,
+        status: "Free",
+        guests: 0,
+        seatedAt: "—",
+        order: [],
+        orders: [],
+        customer: null,
+        sessionId: null,
+        sessionHistory: []
+      }));
+    }
+    return saved.map((table, index) => ({
+      ...table,
+      status: "Free",
+      guests: 0,
+      seatedAt: "—",
+      order: [],
+      orders: [],
+      customer: null,
+      sessionId: null,
+      sessionHistory: [],
+      displayName: table.displayName || `Table ${pad(index + 1)}`
+    }));
+  }
   if (!Array.isArray(saved) || saved.length === 0) return INITIAL_TABLES;
   const today = localDateKey();
   let closedOrderIds = [];
@@ -5213,26 +5242,6 @@ export default function App() {
         };
       }));
     };
-
-    const loadTodayOrders = async () => {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const { data, error } = await supabase
-        .from("cafe_kitchen_orders")
-        .select("*")
-        .gte("created_at", startOfToday.toISOString())
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        console.error("Unable to load today's QR kitchen orders:", error);
-        return;
-      }
-
-      if (active) {
-        (data || []).forEach(applyIncomingOrder);
-      }
-    };
-    loadTodayOrders();
 
     const channel = supabase
       .channel("cafe-kitchen-orders-live")
