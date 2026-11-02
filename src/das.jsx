@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import QRCode from "./qr";
 import { supabase } from "./supabase";
+import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
 
 /* ---------- Tiny hash router: #/  #/review  #/review/day  #/glossary  #/glossary/stock  #/tables  #/order/:tableId ---------- */
 const useRoute = () => {
@@ -378,11 +380,11 @@ const KP = ({ n }) => (
   </div>
 );
 
-function Calendar({ y, m, d, onPick, onMonth }) {
+function Calendar({ y, m, d, onPick, onMonth, hasRecord }) {
   const f = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate(), pd = new Date(y, m, 0).getDate();
   const cells = [];
   for (let i = f - 1; i >= 0; i--) cells.push(<span key={"p" + i} className="o">{pd - i}</span>);
-  for (let k = 1; k <= dim; k++) cells.push(<span key={k} className={k === d ? "sel" : ""} onClick={() => onPick(k)}>{k}</span>);
+  for (let k = 1; k <= dim; k++) cells.push(<span key={k} className={`${k === d ? "sel" : ""} ${hasRecord?.(k) ? "has-record" : ""}`} onClick={() => onPick(k)}>{k}</span>);
   const rem = (7 - cells.length % 7) % 7;
   for (let i = 1; i <= rem; i++) cells.push(<span key={"n" + i} className="o">{i}</span>);
   return (
@@ -2104,6 +2106,7 @@ function LoginView({ onLogin }) {
 
 /* ---------- Home (Kitchen removed - 3 Main Modules: Review, Glossary, Tables) ---------- */
 function Home({ go, currentUser, tables, collection, onStartCollection, onStopCollection }) {
+  const [stopDate, setStopDate] = useState(localDateKey());
   const totalOrders = tables.reduce((count, table) => count + (table.order || []).length, 0);
   const totalAmount = tables.reduce((sum, table) => sum + (table.order || []).reduce((tableSum, item) => tableSum + (Number(item[1]) * Number(item[2])), 0), 0);
   const startedAt = collection.startedAt ? new Date(collection.startedAt).toLocaleString() : "—";
@@ -2129,7 +2132,13 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {!collection.active && <button type="button" className="btn-save" onClick={onStartCollection}>Start Collection</button>}
-                {collection.active && <button type="button" className="btn-del" onClick={onStopCollection}>Stop Collection</button>}
+                {collection.active && <>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 12, fontWeight: 700 }}>
+                    Calendar date
+                    <input type="date" value={stopDate} onChange={(e) => setStopDate(e.target.value)} />
+                  </label>
+                  <button type="button" className="btn-del" onClick={() => onStopCollection(stopDate)}>Stop Collection</button>
+                </>}
               </div>
             </div>
             {collection.stoppedAt && !collection.active && (
@@ -2342,6 +2351,110 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const selectedDayExpenses = getDayExpenses(cal.m, cal.d);
   const dayExpTotal = selectedDayExpenses.reduce((s, x) => s + x.amount, 0);
   const dayNetProfit = rev - dayExpTotal;
+  const recordedSales = (() => {
+    const records = [];
+    const knownIds = new Set();
+    const add = (sale, id) => {
+      const key = id || sale.id;
+      const amount = Number(sale.amount ?? sale.total ?? 0);
+      if (!key || knownIds.has(key) || amount <= 0) return;
+      knownIds.add(key);
+      records.push({
+        id: key,
+        amount,
+        paymentMethod: sale.paymentMethod || "Cash",
+        createdAt: sale.createdAt || sale.closedAt || new Date().toISOString(),
+        reportDate: sale.reportDate || null,
+        itemCount: Number(sale.itemCount || (sale.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0))
+      });
+    };
+    normalSales.forEach((sale) => {
+      if (sale.paymentStatus === "Paid") add(sale);
+    });
+    salesLedger.forEach((sale) => add(sale));
+    tables.forEach((table) => {
+      if (table.paymentStatus === "Paid" && (table.orders || []).length) {
+        add({ ...table, amount: calculateBill(table).total, createdAt: table.orders[0]?.createdAt }, `TABLE-${table.sessionId || table.id}`);
+      }
+      (table.sessionHistory || []).forEach((snapshot) => {
+        if (snapshot.paymentStatus === "Paid") {
+          add({ ...snapshot, amount: snapshot.closedAmount ?? calculateBill(snapshot).total }, `TABLE-${snapshot.sessionId || table.id}-${snapshot.closedAt || snapshot.seatedAt || ""}`);
+        }
+      });
+    });
+    return records;
+  })();
+  const reportForDate = (year, month, day) => {
+    const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const sales = recordedSales.filter((sale) => (sale.reportDate || localDateKey(sale.createdAt)) === dateKey);
+    const cash = sales.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + sale.amount, 0);
+    const gpay = sales.filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + sale.amount, 0);
+    const expenses = expList.filter((expense) => expense.date === dateKey);
+    const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    return { dateKey, sales, total: cash + gpay, cash, gpay, bills: sales.length, items: sales.reduce((sum, sale) => sum + sale.itemCount, 0), expenses: expenseTotal, profit: cash + gpay - expenseTotal };
+  };
+  const selectedReport = reportForDate(cal.y, cal.m, cal.d);
+  const reportForMonth = (year, month) => {
+    const days = [];
+    const dim = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= dim; day++) {
+      const report = reportForDate(year, month, day);
+      if (report.sales.length || report.expenses) days.push(report);
+    }
+    return {
+      days,
+      total: days.reduce((sum, report) => sum + report.total, 0),
+      cash: days.reduce((sum, report) => sum + report.cash, 0),
+      gpay: days.reduce((sum, report) => sum + report.gpay, 0),
+      bills: days.reduce((sum, report) => sum + report.bills, 0),
+      items: days.reduce((sum, report) => sum + report.items, 0),
+      expenses: days.reduce((sum, report) => sum + report.expenses, 0)
+    };
+  };
+  const selectedMonthReport = reportForMonth(cal.y, cal.m);
+  const reportRows = (report, title) => [
+    ["Espresso & Co. Cafe", title],
+    ["Total Sales", report.total],
+    ["Cash Sales", report.cash],
+    ["GPay / Online Sales", report.gpay],
+    ["Total Bills", report.bills],
+    ["Items Sold", report.items],
+    ["Expenses", report.expenses],
+    ["Profit", report.profit ?? report.total - report.expenses]
+  ];
+  const saveBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const exportReport = (format, report, title, monthly = false) => {
+    if (format === "xlsx") {
+      const rows = reportRows(report, title);
+      if (monthly) {
+        rows.push([]);
+        rows.push(["Date", "Sales", "Cash", "GPay / Online", "Bills", "Items", "Expenses", "Profit"]);
+        report.days.forEach((day) => rows.push([day.dateKey, day.total, day.cash, day.gpay, day.bills, day.items, day.expenses, day.profit]));
+      }
+      const sheet = XLSX.utils.aoa_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, "Sales Report");
+      XLSX.writeFile(book, `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.xlsx`);
+      return;
+    }
+    const pdf = new jsPDF();
+    pdf.setFontSize(16);
+    pdf.text("Espresso & Co. Cafe", 14, 18);
+    pdf.setFontSize(11);
+    reportRows(report, title).slice(1).forEach((row, index) => pdf.text(`${row[0]}: ${typeof row[1] === "number" ? inr(row[1]) : row[1]}`, 14, 30 + index * 8));
+    if (monthly) report.days.forEach((day, index) => pdf.text(`${day.dateKey}: ${inr(day.total)} (${day.bills} bills)`, 110, 30 + index * 8));
+    if (format === "view") window.open(pdf.output("bloburl"), "_blank", "noopener,noreferrer");
+    else pdf.save(`${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`);
+  };
+  const [reportMode, setReportMode] = useState("daily");
+  const reportYears = [...new Set([2026, new Date().getFullYear(), ...recordedSales.map((sale) => new Date(sale.createdAt).getFullYear())])].sort((a, b) => b - a);
 
   const [expCat, setExpCat] = useState("Vendor");
   const [expMode, setExpMode] = useState("Cash");
@@ -2669,11 +2782,155 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           </div>
         </div>
       )}
-      {sub === "day" && <>
+      {sub === "day" && <div style={{ display: "grid", gap: 12 }}>
+        <div className="card" style={{ borderColor: "#cbd5e1" }}>
+          <div className="cb" style={{ padding: 8 }}>
+            <div style={{ display: "flex", gap: 4, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 4 }}>
+              {[
+                ["daily", "▣  Daily Report"],
+                ["monthly", "▥  Monthly Report"],
+                ["custom", "▣  Custom Range"]
+              ].map(([mode, label]) => (
+                <button key={mode} type="button" onClick={() => mode !== "custom" && setReportMode(mode)} style={{
+                  flex: 1, border: 0, borderRadius: 8, padding: "9px 12px", fontWeight: 800, fontSize: 13,
+                  background: reportMode === mode ? "#075c35" : "transparent", color: reportMode === mode ? "#fff" : "#1f2937",
+                  cursor: mode === "custom" ? "not-allowed" : "pointer", opacity: mode === "custom" ? 0.65 : 1
+                }}>{label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 0.9fr) minmax(0, 1.1fr)", gap: 12, alignItems: "stretch" }}>
+          <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <div className="card" style={{ borderColor: "#cbd5e1" }}>
+              <div className="ch" style={{ background: "#f3faf6", color: "#172b22", borderBottom: "1px solid #d5e8dc" }}>📅 {reportMode === "monthly" ? "Monthly Report" : "Daily Report"} <span style={{ fontWeight: 500 }}>({reportMode === "monthly" ? "Select Month" : "Select Month & Date"})</span></div>
+              <div className="cb">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <label style={{ fontWeight: 700, fontSize: 12 }}>Select Year</label>
+                  <select value={cal.y} onChange={(e) => setCal((current) => ({ ...current, y: Number(e.target.value) }))} style={{ padding: "7px 10px", border: "1px solid #cbd5e1", borderRadius: 7 }}>
+                    {reportYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </div>
+                {reportMode === "monthly" ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                    {MF.map((month, index) => <button key={month} type="button" onClick={() => setCal((current) => ({ ...current, m: index, d: 1 }))} style={{ padding: "8px 4px", borderRadius: 7, border: "1px solid #d1d5db", background: cal.m === index ? "#075c35" : "#fff", color: cal.m === index ? "#fff" : "#172b22", fontWeight: 700 }}>{month}</button>)}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <label style={{ fontWeight: 700, fontSize: 12 }}>Month</label>
+                    <select value={cal.m} onChange={(e) => setCal((current) => ({ ...current, m: Number(e.target.value), d: 1 }))} style={{ flex: 1, padding: "7px 10px", border: "1px solid #cbd5e1", borderRadius: 7 }}>
+                      {MF.map((month, index) => <option key={month} value={index}>{month} {cal.y}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+            {reportMode === "daily" && <div className="card" style={{ borderColor: "#cbd5e1" }}>
+              <div className="ch" style={{ background: "#f3faf6", color: "#172b22", borderBottom: "1px solid #d5e8dc" }}>📅 Daily Report <span style={{ fontWeight: 500 }}>(Select Month & Date)</span></div>
+              <div className="cb">
+                <Calendar
+                  y={cal.y} m={cal.m} d={cal.d}
+                  onPick={(day) => setCal((current) => ({ ...current, d: day }))}
+                  onMonth={(offset) => setCal((current) => { const date = new Date(current.y, current.m + offset, 1); return { ...current, y: date.getFullYear(), m: date.getMonth(), d: 1 }; })}
+                  hasRecord={(day) => reportForDate(cal.y, cal.m, day).sales.length > 0}
+                />
+                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#475569", marginTop: 8 }}>
+                  <span><b style={{ color: "#16a34a" }}>●</b> Sales Record Available</span><span><b style={{ color: "#cbd5e1" }}>●</b> No Sales Record</span>
+                </div>
+              </div>
+            </div>}
+          </div>
+          <div className="card" style={{ borderColor: "#cbd5e1", minHeight: 420 }}>
+            <div className="ch" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>📄 {reportMode === "monthly" ? `Monthly Report — ${MF[cal.m]} ${cal.y}` : `Sales Report — ${dl}`}</span>
+              <span style={{ fontSize: 11, background: "#dcfce7", color: "#166534", borderRadius: 10, padding: "3px 8px" }}>{reportMode === "monthly" ? "Monthly Report" : "Daily Report"}</span>
+            </div>
+            <div className="cb">
+              {(() => {
+                const report = reportMode === "monthly" ? selectedMonthReport : selectedReport;
+                const title = reportMode === "monthly" ? `Monthly Report ${MF[cal.m]} ${cal.y}` : `Sales Report ${selectedReport.dateKey}`;
+                return (
+                  <>
+                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 14 }}>
+                      <div style={{ textAlign: "center", fontWeight: 900, color: "#075c35", marginBottom: 12 }}>ESPRESSO & CO. CAFE<br /><span style={{ color: "#334155", fontSize: 13 }}>{reportMode === "monthly" ? title : `Daily Sales Report — ${dl}`}</span></div>
+                      {reportMode === "daily" && !selectedReport.sales.length && !selectedReport.expenses ? <div style={{ textAlign: "center", color: "#64748b", fontWeight: 700, padding: 32 }}>No sales records available.</div> : <div className="pe-summary">
+                        {reportRows(report, title).slice(1, 8).map(([label, value]) => <div className="pe-summary-row" key={label}><span>{label}</span><b>{typeof value === "number" && label !== "Total Bills" && label !== "Items Sold" ? inr(value) : value}</b></div>)}
+                        {reportMode === "daily" && <><div className="hl" style={{ marginTop: 12 }}>Hourly Sales ({dl})</div><Chart v={hourly(cal.d)} /></>}
+                      </div>}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
+                      <button type="button" className="btn-view" onClick={() => exportReport("view", report, title, reportMode === "monthly")}>◉ View PDF</button>
+                      <button type="button" className="btn-del" onClick={() => exportReport("pdf", report, title, reportMode === "monthly")}>⇩ Download PDF</button>
+                      <button type="button" className="btn-save" onClick={() => exportReport("xlsx", report, title, reportMode === "monthly")}>⇩ Download Excel</button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>}
+      {false && <>
         <div className="grid g5">
           <div style={{ display: "grid", gap: 12 }}>{calCard}
+            <div className="card">
+              <div className="cb">
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                  <button type="button" className="btn-view" onClick={() => exportReport("view", selectedReport, `Sales Report ${selectedReport.dateKey}`)}>View PDF</button>
+                  <button type="button" className="btn-del" onClick={() => exportReport("pdf", selectedReport, `Sales Report ${selectedReport.dateKey}`)}>Download PDF</button>
+                  <button type="button" className="btn-save" onClick={() => exportReport("xlsx", selectedReport, `Sales Report ${selectedReport.dateKey}`)}>Download Excel (.xlsx)</button>
+                </div>
+                {selectedReport.sales.length || selectedReport.expenses ? (
+                  <div className="pe-summary">
+                    <div className="pe-summary-row"><span>Total Sales</span><b>{inr(selectedReport.total)}</b></div>
+                    <div className="pe-summary-row"><span>Cash Sales</span><b>{inr(selectedReport.cash)}</b></div>
+                    <div className="pe-summary-row"><span>GPay / Online Sales</span><b>{inr(selectedReport.gpay)}</b></div>
+                    <div className="pe-summary-row"><span>Total Bills / Items Sold</span><b>{selectedReport.bills} / {selectedReport.items}</b></div>
+                    <div className="pe-summary-row"><span>Expenses / Profit</span><b>{inr(selectedReport.expenses)} / {inr(selectedReport.profit)}</b></div>
+                  </div>
+                ) : <div style={{ color: "#64748b", fontWeight: 700 }}>No sales records available.</div>}
+              </div>
+            </div>
+            <div className="card">
+              <div className="ch">📅 Sales Calendar</div>
+              <div className="cb">
+                <Calendar
+                  y={cal.y}
+                  m={cal.m}
+                  d={cal.d}
+                  onPick={(day) => setCal((current) => ({ ...current, d: day }))}
+                  onMonth={(offset) => setCal((current) => {
+                    const date = new Date(current.y, current.m + offset, 1);
+                    return { ...current, y: date.getFullYear(), m: date.getMonth(), d: 1 };
+                  })}
+                  hasRecord={(day) => reportForDate(cal.y, cal.m, day).sales.length > 0}
+                />
+              </div>
+            </div>
             <div className="card g"><div className="cb"><div className="sel-t">Selected Date: {dl}</div><KP rev={rev} n={n} /><div className="hl">Hourly Sales ({dl})</div><Chart v={hourly(cal.d)} />
               <div className="inc"><span className="ic">🗓</span><span><small>Total Sales in {MN[cal.m]} {cal.y}</small><b>{inr(mt.rev)}</b><em>{mt.items} items sold · {mt.days} sales days</em></span></div></div></div>
+            <div className="card">
+              <div className="ch">📊 Monthly Report — {MF[cal.m]} {cal.y}</div>
+              <div className="cb">
+                <div className="pe-summary">
+                  <div className="pe-summary-row"><span>Total Sales</span><b>{inr(selectedMonthReport.total)}</b></div>
+                  <div className="pe-summary-row"><span>Cash Sales</span><b>{inr(selectedMonthReport.cash)}</b></div>
+                  <div className="pe-summary-row"><span>GPay / Online Sales</span><b>{inr(selectedMonthReport.gpay)}</b></div>
+                  <div className="pe-summary-row"><span>Total Bills / Items Sold</span><b>{selectedMonthReport.bills} / {selectedMonthReport.items}</b></div>
+                  <div className="pe-summary-row"><span>Expenses</span><b>{inr(selectedMonthReport.expenses)}</b></div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                  <button type="button" className="btn-view" onClick={() => exportReport("view", selectedMonthReport, `Monthly Report ${MF[cal.m]} ${cal.y}`, true)}>View PDF</button>
+                  <button type="button" className="btn-del" onClick={() => exportReport("pdf", selectedMonthReport, `Monthly Report ${MF[cal.m]} ${cal.y}`, true)}>Download PDF</button>
+                  <button type="button" className="btn-save" onClick={() => exportReport("xlsx", selectedMonthReport, `Monthly Report ${MF[cal.m]} ${cal.y}`, true)}>Download Excel (.xlsx)</button>
+                </div>
+                {selectedMonthReport.days.length > 0 && <div className="tw" style={{ marginTop: 10 }}>
+                  <table><thead><tr><th>Date</th><th>Sales</th><th>Cash</th><th>GPay / Online</th><th>Bills</th></tr></thead>
+                    <tbody>{selectedMonthReport.days.map((day) => <tr key={day.dateKey} onClick={() => setCal({ y: Number(day.dateKey.slice(0, 4)), m: Number(day.dateKey.slice(5, 7)) - 1, d: Number(day.dateKey.slice(8, 10)) })}><td>{day.dateKey}</td><td>{inr(day.total)}</td><td>{inr(day.cash)}</td><td>{inr(day.gpay)}</td><td>{day.bills}</td></tr>)}</tbody>
+                  </table>
+                </div>}
+              </div>
+            </div>
 
             {/* Expenses with Reason Card for Selected Date */}
             <div className="card" style={{ borderColor: "#f0a9ad" }}>
@@ -5405,11 +5662,19 @@ export default function App() {
     });
   };
 
-  const stopCollection = () => {
+  const stopCollection = (calendarDate = localDateKey()) => {
     if (!collection.active) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(calendarDate)) {
+      console.error("A valid calendar date is required before stopping the collection.");
+      return;
+    }
     let ledger = [];
     try { ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); } catch { ledger = []; }
-    const sessionSales = ledger.filter((sale) => sale.sessionId === collection.sessionId);
+    const sessionSales = ledger
+      .filter((sale) => sale.sessionId === collection.sessionId)
+      .map((sale) => ({ ...sale, reportDate: calendarDate }));
+    const updatedLedger = ledger.map((sale) => sale.sessionId === collection.sessionId ? { ...sale, reportDate: calendarDate } : sale);
+    localStorage.setItem("cafe_sales_ledger", JSON.stringify(updatedLedger));
     const amount = sessionSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
     const orders = sessionSales.length;
     const paymentBreakdown = sessionSales.reduce((result, sale) => {
@@ -5434,6 +5699,7 @@ export default function App() {
         totalCash,
         totalGPay,
         totalCollectionIncome: totalCash + totalGPay,
+        reportDate: calendarDate,
         sessionId: current.sessionId
       }
     }));
