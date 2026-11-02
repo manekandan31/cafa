@@ -98,13 +98,20 @@ const INITIAL_TABLES = TABLES0.map((table) => ({
 
 const normalizeTables = (saved) => {
   if (!Array.isArray(saved) || saved.length === 0) return INITIAL_TABLES;
+  const today = localDateKey();
   return saved.map((table, index) => ({
     ...table,
-    status: table.status === "Occupied" ? "Occupied" : "Free",
-    sessionId: table.sessionId || null,
-    customer: table.customer || null,
-    orders: Array.isArray(table.orders) ? table.orders : [],
-    sessionHistory: Array.isArray(table.sessionHistory) ? table.sessionHistory : [],
+    status: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? "Occupied" : "Free",
+    sessionId: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? table.sessionId || null : null,
+    customer: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? table.customer || null : null,
+    orders: Array.isArray(table.orders)
+      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today)
+      : [],
+    order: Array.isArray(table.orders)
+      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today)
+        .flatMap((order) => (order.items || []).map((item) => [item.name, item.qty, item.price, "QR"]))
+      : [],
+    sessionHistory: [],
     displayName: table.displayName || `Table ${pad(index + 1)}`
   }));
 };
@@ -112,6 +119,13 @@ const normalizeTables = (saved) => {
 const tableLabel = (table, index = 0) => table.displayName || `Table ${pad(index + 1)}`;
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
 const validPhone = (phone) => /^\d{10,15}$/.test(normalizePhone(phone));
+const localDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 const COLLECTION_INACTIVE_MESSAGE = "Collection is not started. Please click Start Collection to begin.";
 const calculateBill = (table) => {
   const orders = table.orders || [];
@@ -293,9 +307,8 @@ const Chart = ({ v }) => {
   );
 };
 
-const KP = ({ rev, n }) => (
+const KP = ({ n }) => (
   <div className="kp">
-    <div><span className="ic">₹</span><span><small>Total Revenue</small><b>{money(rev)}</b></span></div>
     <div className="i"><span className="ic b">🛍</span><span><small>Items Sold</small><b>{n} Items</b></span></div>
   </div>
 );
@@ -1746,9 +1759,9 @@ function TableModal({ table, onClose, onSave }) {
   );
 }
 
-/* ---------- Multi-Role Login Portal (Admin, Supplier, Kitchen) ---------- */
+/* ---------- Admin Login Portal ---------- */
 function LoginView({ onLogin }) {
-  const [activeRole, setActiveRole] = useState("admin"); // 'admin' | 'supplier' | 'kitchen'
+  const [activeRole, setActiveRole] = useState("admin");
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
@@ -1773,48 +1786,6 @@ function LoginView({ onLogin }) {
         "Dining Table Floor & POS Billing",
         "Table QR Sticker Code Generator",
         "Complete Management Authority"
-      ]
-    },
-    {
-      id: "supplier",
-      title: "Supplier (Suplyer)",
-      badge: "🚚 Supply & Inventory",
-      tagline: "Supplier Main Role & Kitchen Dispatch",
-      desc: "Supplier receives kitchen orders with exact item details, sends alerts to Admin, manages 10 tables (5 G & 5 C), extra tables/seats, and vendor stock.",
-      color: "#059669",
-      accent: "#10b981",
-      gradient: "linear-gradient(135deg, #047857 0%, #10b981 100%)",
-      icon: "🚚",
-      defaultUser: "supplier",
-      defaultPass: "supplier123",
-      landingRoute: "/supplier",
-      landingName: "Supplier Floor & Kitchen Command",
-      highlights: [
-        "Kitchen Messages Dispatch ➔ Send to Admin",
-        "Manage 10 Tables (5 Called G & 5 Called C)",
-        "Add Extra Tables & Edit Extra Seats",
-        "Raw Ingredient Restocking Controls"
-      ]
-    },
-    {
-      id: "kitchen",
-      title: "Kitchen",
-      badge: "👨‍🍳 Chef & Prep Station",
-      tagline: "Kitchen Display System (KDS)",
-      desc: "Live order screen for line chefs & baristas. Real-time food prep queue, KOT receipts, sound ding, and order status updates.",
-      color: "#ea580c",
-      accent: "#f97316",
-      gradient: "linear-gradient(135deg, #c2410c 0%, #f97316 100%)",
-      icon: "👨‍🍳",
-      defaultUser: "kitchen",
-      defaultPass: "kitchen123",
-      landingRoute: "/kitchen",
-      landingName: "Kitchen Display System (KDS)",
-      highlights: [
-        "Real-Time Kitchen Display Screen",
-        "Order Queue: Cooking, Ready & Served",
-        "Thermal KOT Print Ticket Generation",
-        "Audible Kitchen Ding & Sound Buzzer"
       ]
     }
   ];
@@ -1907,11 +1878,11 @@ function LoginView({ onLogin }) {
         </div>
         <h1 className="login-main-title">Select Login Role</h1>
         <p className="login-sub-title">
-          Sign in to your dedicated portal: <b>Admin</b>, <b>Supplier</b> (suplyer), or <b>Kitchen</b>.
+          Sign in to your dedicated <b>Admin</b> portal.
         </p>
       </div>
 
-      {/* 3 Role Selection Cards */}
+      {/* Admin role card */}
       <div className="login-roles-grid">
         {ROLES.map((role) => {
           const isSelected = activeRole === role.id;
@@ -2172,19 +2143,11 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
   );
 }
 
-function Review({ go, sub, collectionActive, collection }) {
+function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const [cal, setCal] = useState({ y: 2026, m: 9, d: 14 });
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
-  const pickMonth = (e) => { setCal({ ...cal, m: parseInt(e.target.value), d: 1 }); setPage(1); setQ(""); };
-  const pickDate = (e) => { setCal({ ...cal, d: parseInt(e.target.value) }); setPage(1); setQ(""); };
+  const pickMonth = (e) => setCal({ ...cal, m: parseInt(e.target.value), d: 1 });
+  const pickDate = (e) => setCal({ ...cal, d: parseInt(e.target.value) });
   const daysInMonth = new Date(cal.y, cal.m + 1, 0).getDate();
-  const PAY_MODES = ["GPay", "Cash", "Card"];
-  const payBadge = (idx) => {
-    const mode = PAY_MODES[idx % 3];
-    const cfg = mode === "Cash" ? { bg: "#d9f2df", color: "#1b7a3a", icon: "💵" } : mode === "GPay" ? { bg: "#d9f2df", color: "#1b7a3a", icon: "📱" } : { bg: "#e8e0f7", color: "#6d28d9", icon: "💳" };
-    return <span className="pay-badge" style={{ background: cfg.bg, color: cfg.color }}><span>{cfg.icon}</span> {mode}</span>;
-  };
 
   const calCard = (
     <div className="card">
@@ -2207,21 +2170,9 @@ function Review({ go, sub, collectionActive, collection }) {
       </div>
     </div>
   );
-  const detail = (
-    <div className="card"><div className="ch">📋 Sales Detail Report</div>
-      <div className="tw"><table><thead><tr><th>#</th><th>Time</th><th>Payment Type</th><th className="a">Amount</th></tr></thead>
-        <tbody>{TODAY.map((x, i) => (
-            <tr key={i}>
-              <td>{i + 1}</td>
-              <td>{TT[i]}</td>
-              <td>{payBadge(i)}</td>
-              <td className="a">{money(x[0])}</td>
-            </tr>
-        ))}</tbody></table></div></div>
-  );
   const dl = `${cal.d} ${MF[cal.m]} ${cal.y}`;
-  const all = txs(cal.m, cal.d, 75).filter((x) => !q || (x.id + x.i + x.t + PAY_MODES[parseInt(x.id.replace(/\D/g,"")) % 3]).toLowerCase().includes(q.toLowerCase()));
-  const pages = Math.max(1, Math.ceil(all.length / 15)), pg = Math.min(page, pages), [rev, n] = [dayRev(cal.m, cal.d), dayItems(cal.m, cal.d)], mt = monthTotal(cal.y, cal.m);
+  const [rev, n] = [dayRev(cal.m, cal.d), dayItems(cal.m, cal.d)];
+  const mt = monthTotal(cal.y, cal.m);
 
   /* --- Profit & Expense Data --- */
   const normalSales = (() => {
@@ -2238,7 +2189,7 @@ function Review({ go, sub, collectionActive, collection }) {
     try { return JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); }
     catch { return []; }
   })();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   // Show only sales belonging to the currently selected collection session.
   // Starting a new collection creates a new sessionId, so older sales stay in
   // history and do not appear in the new collection's live totals.
@@ -2251,6 +2202,28 @@ function Review({ go, sub, collectionActive, collection }) {
     return sum + (!alreadyRecorded && sale.sessionId === collection.sessionId ? Number(sale.total || 0) : 0);
   }, 0) : 0;
   const baseTodaySales = ledgerSessionSales + legacySessionSales;
+  const currentTableSales = tables
+    .filter((table) => (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === todayKey))
+    .map((table) => {
+      const bill = calculateBill(table);
+      return {
+        id: `TABLE-${table.sessionId || table.id}`,
+        amount: bill.total,
+        itemCount: bill.lines.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+        paymentMethod: table.paymentMethod || "Cash",
+        createdAt: new Date().toISOString()
+      };
+    })
+    .filter((sale) => !salesLedger.some((entry) => entry.id === sale.id));
+  const currentTableSalesTotal = currentTableSales.reduce((sum, sale) => sum + sale.amount, 0);
+  const saleItemCount = (sale) => {
+    if (Number.isFinite(Number(sale.itemCount))) return Number(sale.itemCount);
+    const source = normalSales.find((entry) => entry.id === sale.id);
+    return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
+  };
+  const dailySales = salesLedger.filter((sale) => String(sale.createdAt || "").slice(0, 10) === todayKey);
+  const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
+    + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
   const [expList, setExpList] = useState(() => {
     try {
       const saved = localStorage.getItem("cafe_today_expenses");
@@ -2312,7 +2285,7 @@ function Review({ go, sub, collectionActive, collection }) {
     const amt = parseFloat(expAmt);
     if (!amt || amt <= 0) return;
     if (expCat === "Others" && !expReason.trim()) return;
-    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: localDateKey(), time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
     setExpList(prev => [entry, ...prev]);
     setExpAmt(""); setExpReason(""); setExpReference("");
   };
@@ -2322,33 +2295,35 @@ function Review({ go, sub, collectionActive, collection }) {
   const totalExpense = expList.reduce((s, x) => s + x.amount, 0);
   const actualProfit = baseTodaySales - totalExpense;
 
-  const todayLedger = activeSessionSales;
+  const todayLedger = [...dailySales, ...currentTableSales];
   const salesCash = todayLedger.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const salesGPay = todayLedger.filter((sale) => ["gpay", "google pay", "upi"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
   const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
   const netCash = salesCash - expenseCash;
   const netGPay = salesGPay - expenseGPay;
-
   const todayCard = (
     <div className="card g">
       <div className="ch">📈 Today's Sales Summary</div>
       <div className="cb">
-        <KP rev={actualProfit} n={73} />
-        {totalExpense > 0 && (
-          <div style={{ margin: "-4px 0 12px 0", fontSize: 12, color: "#475569", display: "flex", gap: 14, background: "#f8fafc", padding: "8px 14px", borderRadius: 8, border: "1px solid #e2e8f0", alignItems: "center", flexWrap: "wrap" }}>
-            <span>Base Sales: <b style={{ color: "#0d8a2f" }}>{money(baseTodaySales)}</b></span>
-            <span>Expenses Deducted: <b style={{ color: "#c4161c" }}>- {money(totalExpense)}</b></span>
-            <span>Updated Profit: <b style={{ color: actualProfit >= 0 ? "#0d8a2f" : "#c4161c" }}>{money(actualProfit)}</b></span>
+        <KP n={dailyItemCount} />
+        <div className="pe-cash-grid" style={{ margin: "10px 0 12px" }}>
+          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px" }}>
+            <small style={{ color: "#166534", fontWeight: 700, fontSize: 11, display: "block" }}>TODAY GPAY</small>
+            <b style={{ color: "#15803d", fontSize: 20 }}>{inr(salesGPay)}</b>
           </div>
-        )}
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px" }}>
+            <small style={{ color: "#92400e", fontWeight: 700, fontSize: 11, display: "block" }}>TODAY CASH</small>
+            <b style={{ color: "#b45309", fontSize: 20 }}>{inr(salesCash)}</b>
+          </div>
+        </div>
         <div className="hl">Hourly Sales</div>
         <Chart v={hourly("today")} />
         <div className="inc">
           <span className="ic">💰</span>
           <span>
             <small>Total Income In This Collection</small>
-            <b>₹{(baseTodaySales - totalExpense).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
+            <b>{inr(baseTodaySales + currentTableSalesTotal)}</b>
             <em>{collection?.startedAt ? new Date(collection.startedAt).toLocaleString() : "Collection not started"}</em>
           </span>
         </div>
@@ -2365,7 +2340,7 @@ function Review({ go, sub, collectionActive, collection }) {
           <button className="big" onClick={() => go("/review/profitexpense")}><i>💰</i>PROFIT & EXPENSE</button>
         </div>
       )}
-      {sub === "today" && <div style={{ display: "grid", gap: 14 }}>{todayCard}{detail}</div>}
+      {sub === "today" && <div style={{ display: "grid", gap: 14 }}>{todayCard}</div>}
       {sub === "profitexpense" && (
         <div className="grid g5">
           {/* LEFT: Today's Profit & Cash/GPay Breakdown */}
@@ -2661,25 +2636,6 @@ function Review({ go, sub, collectionActive, collection }) {
                   </table>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className="card"><div className="ch">📋 Sales Detail Report ({dl})<input className="srch" placeholder="🔍 Search by payment type or time" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
-            <div className="tw tall"><table><thead><tr><th>#</th><th>Time</th><th>Payment Type</th><th className="a">Amount</th></tr></thead>
-              <tbody>{all.slice((pg - 1) * 15, pg * 15).map((x, i) => {
-                const globalIdx = parseInt(x.id.replace(/\D/g,"")) % 3;
-                return (
-                  <tr key={x.id}>
-                    <td>{(pg - 1) * 15 + i + 1}</td>
-                    <td>{x.t}</td>
-                    <td>{payBadge(globalIdx)}</td>
-                    <td className="a">{money(x.a)}</td>
-                  </tr>
-                );
-              })}</tbody></table></div>
-            <div className="pg">
-              <button disabled={pg <= 1} onClick={() => setPage(Math.max(1, pg - 1))}>‹</button>
-              {Array.from({ length: Math.min(pages, 5) }, (_, i) => <button key={i} className={pg === i + 1 ? "on" : ""} onClick={() => setPage(i + 1)}>{i + 1}</button>)}
-              <button disabled={pg >= pages} onClick={() => setPage(Math.min(pages, pg + 1))}>›</button>
             </div>
           </div>
         </div></>}
@@ -3430,7 +3386,8 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
         const total = Number(bill.total || 0);
         localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
           id: saleId, sessionId: session.sessionId, source: "Table", sourceId: saleId,
-          tableId: table.id, amount: total, paymentMethod, createdAt: new Date().toISOString()
+          tableId: table.id, amount: total, itemCount: bill.lines.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+          paymentMethod, createdAt: new Date().toISOString()
         }]));
       }
     }
@@ -3578,7 +3535,8 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
         if (!ledger.some((entry) => entry.id === sale.id)) {
           localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
             id: sale.id, sessionId: collection.sessionId, source: "Counter",
-            sourceId: sale.id, amount: total, paymentMethod, createdAt: sale.createdAt
+            sourceId: sale.id, amount: total, itemCount: selected.reduce((sum, product) => sum + cart[product.id], 0),
+            paymentMethod, createdAt: sale.createdAt
           }]));
         }
       }
@@ -5069,10 +5027,8 @@ export default function App() {
     }
   });
   const [archivedBills, setArchivedBills] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("cafe_previous_bills") || "[]");
-      return Array.isArray(saved) ? saved : [];
-    } catch { return []; }
+    localStorage.removeItem("cafe_previous_bills");
+    return [];
   });
   useEffect(() => {
     localStorage.setItem("cafe_previous_bills", JSON.stringify(archivedBills));
@@ -5084,13 +5040,8 @@ export default function App() {
     localStorage.setItem("cafe_collection_session", JSON.stringify(collection));
   }, [collection]);
   const [kitchenOrders, setKitchenOrders] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("cafe_kitchen_orders") || "null");
-      return Array.isArray(saved) ? saved : INITIAL_KITCHEN_ORDERS;
-    } catch (error) {
-      console.error("Unable to restore kitchen orders.", error);
-      return INITIAL_KITCHEN_ORDERS;
-    }
+    localStorage.removeItem("cafe_kitchen_orders");
+    return [];
   });
   useEffect(() => {
     localStorage.setItem("cafe_kitchen_orders", JSON.stringify(kitchenOrders));
@@ -5118,7 +5069,9 @@ export default function App() {
       status: row.status || "new"
     });
 
-   
+    const applyIncomingOrder = (row) => {
+      const ticket = toKitchenTicket(row);
+
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
         playKitchenDing();
@@ -5177,28 +5130,25 @@ export default function App() {
       }));
     };
 
-    // Load ALL QR orders for each table, including served orders.
-    // Served orders must remain in the running bill so a customer's later
-    // order at the same table is combined with their earlier orders.
-    const loadPendingOrders = async () => {
-  if (!collection.sessionId) return;
+    const loadTodayOrders = async () => {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("cafe_kitchen_orders")
+        .select("*")
+        .gte("created_at", startOfToday.toISOString())
+        .order("created_at", { ascending: true });
 
-  const { data, error } = await supabase
-    .from("cafe_kitchen_orders")
-    .select("*")
-    .eq("collection_id", collection.sessionId)
-    .order("created_at", { ascending: true });
+      if (error) {
+        console.error("Unable to load today's QR kitchen orders:", error);
+        return;
+      }
 
-  if (error) {
-    console.error("Unable to load QR kitchen orders:", error);
-    return;
-  }
-
-  if (active) {
-    (data || []).forEach(applyIncomingOrder);
-  }
-};
-    loadPendingOrders();
+      if (active) {
+        (data || []).forEach(applyIncomingOrder);
+      }
+    };
+    loadTodayOrders();
 
     const channel = supabase
       .channel("cafe-kitchen-orders-live")
@@ -5206,10 +5156,8 @@ export default function App() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "cafe_kitchen_orders" },
         (payload) => {
-  if (payload.new.collection_id === collection.sessionId) {
-    applyIncomingOrder(payload.new);
-  }
-}
+          applyIncomingOrder(payload.new);
+        }
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -5229,13 +5177,15 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem("cafe_auth_user");
-      return saved ? JSON.parse(saved) : null;
+      const user = saved ? JSON.parse(saved) : null;
+      return user?.role === "admin" ? user : null;
     } catch {
       return null;
     }
   });
 
   const handleLogin = (user) => {
+    if (user.role !== "admin") return;
     setCurrentUser(user);
     try {
       localStorage.setItem("cafe_auth_user", JSON.stringify(user));
@@ -5280,7 +5230,7 @@ export default function App() {
   };
 
   const startCollection = () => {
-    if (collection.active) return;
+    // Start a new collection even if the previous session is still marked active.
     const now = new Date().toISOString();
     const previous = [];
     tables.forEach((table) => {
@@ -5295,6 +5245,7 @@ export default function App() {
           });
         }
       });
+
       if ((table.orders || []).length) {
         previous.push({
           id: `BILL-${table.sessionId || table.id}-${now}`,
@@ -5389,7 +5340,7 @@ export default function App() {
   // 3. Authenticated routes
   else {
     if (root === "review") {
-      page = <Review go={go} sub={sub} collectionActive={collection.active} collection={collection} />;
+      page = <Review go={go} sub={sub} collectionActive={collection.active} collection={collection} tables={tables} />;
     } else if (root === "glossary") {
       page = <Glossary go={go} sub={sub} currentUser={currentUser} />;
     } else if (root === "tables") {
