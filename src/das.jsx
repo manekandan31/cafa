@@ -2268,7 +2268,10 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   }, 0) : 0;
   const baseTodaySales = ledgerSessionSales + legacySessionSales;
   const currentTableSales = tables
-    .filter((table) => table.paymentStatus === "Paid" && (table.orders || []).some((order) => localDateKey(order.createdAt) === todayKey))
+    .filter((table) => collection?.active
+      && table.sessionId === collection.sessionId
+      && table.paymentStatus === "Paid"
+      && (table.orders || []).some((order) => localDateKey(order.createdAt) === todayKey))
     .map((table) => {
       const bill = calculateBill(table);
       return {
@@ -2286,7 +2289,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const source = normalSales.find((entry) => entry.id === sale.id);
     return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   };
-  const dailySales = salesLedger.filter((sale) => localDateKey(sale.createdAt) === todayKey);
+  const dailySales = activeSessionSales.filter((sale) => localDateKey(sale.createdAt) === todayKey);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
     + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
   const [expList, setExpList] = useState(() => {
