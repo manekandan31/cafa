@@ -19,25 +19,99 @@ const useRoute = () => {
 /* ---------- Data ---------- */
 const MN = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 const MF = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const ITEMS = [["Cappuccino",120],["Veg Sandwich",150],["Cold Coffee",180],["Marble Cake",90],["Chocolate Muffin",110],["Paneer Pizza",320],["French Fries",130],["Iced Tea",100],["Latte",150],["Burger",220],["Maggie",90],["Choco Shake",160],["Samosa",60],["Lemon Tea",50],["Chicken Burger",250]];
+const ITEMS = [["Espresso",80],["Cappuccino",160],["Avocado Sandwich",280],["Fruit Salad",220],["Spinach Soup",210],["Vegetable Pasta",390],["Vegetable Burger",280],["Margherita",380],["Chocolate Mousse",220],["Butter Cookie",130]];
 const TODAY = [[89.99,"Coffee Maker"],[120,"Sandwich"],[150,"Cold Coffee"],[90,"Marble Cake"],[110,"Chocolate Muffin"],[320,"Paneer Pizza"],[130,"French Fries"],[100,"Iced Tea"],[150,"Latte"],[220,"Burger"],[90,"Maggie"],[160,"Choco Shake"]];
 const TT = ["08:15 AM","08:32 AM","09:05 AM","09:28 AM","10:12 AM","10:45 AM","11:20 AM","12:05 PM","12:40 PM","01:15 PM","01:50 PM","02:30 PM"];
 
 /* ---------- Rich Menu with Categories & Descriptions for QR Ordering ---------- */
 const MENU_ITEMS = [
-  { id: "M1", name: "Cappuccino", price: 120, cat: "Hot Coffee", desc: "Rich double espresso with silky steamed milk & thick frothy foam", icon: "☕", badge: "Bestseller" },
-  { id: "M2", name: "Latte", price: 150, cat: "Hot Coffee", desc: "Smooth espresso blended with steamed whole milk and light microfoam", icon: "🥛", badge: "Popular" },
-  { id: "M3", name: "Espresso", price: 90, cat: "Hot Coffee", desc: "Bold, intense single-origin dark roast double shot", icon: "☕", badge: "Classic" },
-  { id: "M4", name: "Cold Coffee", price: 180, cat: "Cold Beverages", desc: "Chilled espresso brewed over fresh milk, ice & premium vanilla ice cream", icon: "🧊", badge: "Must Try" },
-  { id: "M5", name: "Iced Tea", price: 100, cat: "Cold Beverages", desc: "Crisp brewed black tea infused with lemon zest and fresh garden mint", icon: "🍹", badge: "Refreshing" },
-  { id: "M6", name: "Choco Shake", price: 160, cat: "Cold Beverages", desc: "Decadent dark chocolate shake topped with whipped cream and choco chips", icon: "🍫", badge: "Sweet Tooth" },
-  { id: "M7", name: "Veg Sandwich", price: 150, cat: "Snacks & Bites", desc: "Grilled multigrain bread loaded with cucumber, tomatoes, cheese & basil pesto", icon: "🥪", badge: "Chef's Special" },
-  { id: "M8", name: "Paneer Pizza", price: 320, cat: "Snacks & Bites", desc: "Hand-stretched thin crust with smoky marinated paneer, capsicum & mozzarella", icon: "🍕", badge: "Sharing" },
-  { id: "M9", name: "French Fries", price: 130, cat: "Snacks & Bites", desc: "Golden crinkle-cut fries tossed with peri-peri herbs & garlic dip", icon: "🍟", badge: "Crunchy" },
-  { id: "M10", name: "Burger", price: 220, cat: "Snacks & Bites", desc: "Herb grilled patty with melted cheddar, pickled gherkins & house sauce", icon: "🍔", badge: "Signature" },
-  { id: "M11", name: "Chocolate Muffin", price: 110, cat: "Bakery & Desserts", desc: "Fresh oven-baked double chocolate muffin with a warm gooey center", icon: "🧁", badge: "Fresh Daily" },
-  { id: "M12", name: "Marble Cake", price: 90, cat: "Bakery & Desserts", desc: "Traditional vanilla-cocoa swirl slice baked with real butter", icon: "🍰", badge: "Cafe Favorite" },
-  { id: "M13", name: "Blueberry Cheesecake", price: 180, cat: "Bakery & Desserts", desc: "Creamy baked New York cheesecake topped with lush wild blueberry glaze", icon: "🫐", badge: "Gourmet" }
+  { id: "M1", name: "Espresso", price: 80, cat: "Coffees", desc: "Rich single-origin espresso", icon: "☕", badge: "Classic" },
+  { id: "M1L", name: "Espresso (Large)", price: 110, cat: "Coffees", desc: "Large rich single-origin espresso", icon: "☕", badge: "" },
+  { id: "M2", name: "Americano", price: 110, cat: "Coffees", desc: "Espresso with hot water", icon: "☕", badge: "" },
+  { id: "M3", name: "Macchiato", price: 100, cat: "Coffees", desc: "Espresso marked with milk", icon: "☕", badge: "" },
+  { id: "M4", name: "Cortado", price: 90, cat: "Coffees", desc: "Espresso balanced with warm milk", icon: "🥛", badge: "" },
+  { id: "M5", name: "Cappuccino", price: 160, cat: "Coffees", desc: "Espresso with steamed milk and foam", icon: "☕", badge: "Bestseller" },
+  { id: "M6", name: "Latte", price: 180, cat: "Coffees", desc: "Smooth espresso with steamed milk", icon: "🥛", badge: "Popular" },
+  { id: "M7", name: "Flat White", price: 190, cat: "Coffees", desc: "Velvety espresso and microfoam", icon: "☕", badge: "" },
+  { id: "M8", name: "CAFE Mocha", price: 210, cat: "Coffees", desc: "Coffee blended with chocolate", icon: "🍫", badge: "" },
+  { id: "M9", name: "Vietnamese Coffee", price: 190, cat: "Coffees", desc: "Strong coffee with condensed milk", icon: "☕", badge: "" },
+  { id: "M10", name: "Spanish Latte", price: 190, cat: "Coffees", desc: "Espresso with sweetened milk", icon: "🥛", badge: "" },
+  { id: "M11", name: "Affogato", price: 220, cat: "Coffees", desc: "Espresso poured over ice cream", icon: "🍨", badge: "" },
+  { id: "M12", name: "CHOCO Frappe", price: 210, cat: "Coffees", desc: "Iced chocolate coffee frappe", icon: "🧊", badge: "" },
+  { id: "M13", name: "Choco Espresso", price: 150, cat: "Chocolate", desc: "Chocolate and espresso drink", icon: "🍫", badge: "" },
+  { id: "M14", name: "Hot Chocolate", price: 220, cat: "Chocolate", desc: "Rich hot chocolate", icon: "🍫", badge: "" },
+  { id: "M15", name: "Nutella Coffee", price: 220, cat: "Chocolate", desc: "Coffee with Nutella", icon: "🍫", badge: "" },
+  { id: "M16", name: "Avocado Sandwich", price: 280, cat: "Sandwiches & Toasts", desc: "Veg sandwich with avocado", icon: "🥪", badge: "" },
+  { id: "M16E", name: "Avocado Sandwich (Egg)", price: 320, cat: "Sandwiches & Toasts", desc: "Egg sandwich with avocado", icon: "🥪", badge: "" },
+  { id: "M16C", name: "Avocado Sandwich (Chicken)", price: 340, cat: "Sandwiches & Toasts", desc: "Chicken sandwich with avocado", icon: "🥪", badge: "" },
+  { id: "M17", name: "Pesto Sandwich", price: 280, cat: "Sandwiches & Toasts", desc: "Veg sandwich with pesto", icon: "🥪", badge: "" },
+  { id: "M17E", name: "Pesto Sandwich (Egg)", price: 320, cat: "Sandwiches & Toasts", desc: "Egg sandwich with pesto", icon: "🥪", badge: "" },
+  { id: "M17C", name: "Pesto Sandwich (Chicken)", price: 340, cat: "Sandwiches & Toasts", desc: "Chicken sandwich with pesto", icon: "🥪", badge: "" },
+  { id: "M18", name: "Harissa (Spicy) Sandwich", price: 280, cat: "Sandwiches & Toasts", desc: "Spicy harissa sandwich", icon: "🥪", badge: "" },
+  { id: "M18E", name: "Harissa (Spicy) Sandwich (Egg)", price: 320, cat: "Sandwiches & Toasts", desc: "Spicy egg sandwich with harissa", icon: "🥪", badge: "" },
+  { id: "M18C", name: "Harissa (Spicy) Sandwich (Chicken)", price: 340, cat: "Sandwiches & Toasts", desc: "Spicy chicken sandwich with harissa", icon: "🥪", badge: "" },
+  { id: "M19", name: "Plain Butter Toast", price: 90, cat: "Sandwiches & Toasts", desc: "Toast with butter", icon: "🍞", badge: "" },
+  { id: "M20", name: "Classic Toast", price: 200, cat: "Sandwiches & Toasts", desc: "Classic cafe toast", icon: "🍞", badge: "" },
+  { id: "M21", name: "French Toast", price: 250, cat: "Sandwiches & Toasts", desc: "Classic French toast", icon: "🍞", badge: "" },
+  { id: "M22", name: "Spanish Omelette", price: 250, cat: "Sandwiches & Toasts", desc: "Spanish-style omelette", icon: "🍳", badge: "" },
+  { id: "M23", name: "Mushroom Omelette", price: 250, cat: "Sandwiches & Toasts", desc: "Omelette with mushrooms", icon: "🍳", badge: "" },
+  { id: "M24", name: "Fruit Salad", price: 220, cat: "Salads & Juices", desc: "Fresh seasonal fruit salad", icon: "🍎", badge: "" },
+  { id: "M25", name: "French Garden Salad", price: 260, cat: "Salads & Juices", desc: "Fresh garden salad", icon: "🥗", badge: "" },
+  { id: "M26", name: "Caesar Salad", price: 450, cat: "Salads & Juices", desc: "Classic Caesar salad", icon: "🥗", badge: "" },
+  { id: "M27", name: "Chicken Salad", price: 430, cat: "Salads & Juices", desc: "Fresh salad with chicken", icon: "🥗", badge: "" },
+  { id: "M28", name: "Watermelon Juice", price: 160, cat: "Salads & Juices", desc: "Fresh watermelon juice", icon: "🍉", badge: "" },
+  { id: "M29", name: "Orange Juice", price: 180, cat: "Salads & Juices", desc: "Fresh orange juice", icon: "🍊", badge: "" },
+  { id: "M30", name: "Pineapple Juice", price: 170, cat: "Salads & Juices", desc: "Fresh pineapple juice", icon: "🍍", badge: "" },
+  { id: "M31", name: "ApC (Apple, Pomegranate, Carrot)", price: 200, cat: "Salads & Juices", desc: "Apple, pomegranate and carrot juice", icon: "🥤", badge: "" },
+  { id: "M32", name: "Lemon Juice", price: 120, cat: "Salads & Juices", desc: "Fresh lemon juice", icon: "🍋", badge: "" },
+  { id: "M33", name: "Lemon Soda", price: 160, cat: "Salads & Juices", desc: "Refreshing lemon soda", icon: "🥤", badge: "" },
+  { id: "M34", name: "Spinach Soup", price: 210, cat: "Soups & Starters", desc: "Warm spinach soup", icon: "🍲", badge: "" },
+  { id: "M35", name: "Vegetable Garden Soup", price: 220, cat: "Soups & Starters", desc: "Soup with garden vegetables", icon: "🍲", badge: "" },
+  { id: "M36", name: "French Onion Soup", price: 250, cat: "Soups & Starters", desc: "Classic French onion soup", icon: "🍲", badge: "" },
+  { id: "M37", name: "Cream of Mushroom Soup", price: 260, cat: "Soups & Starters", desc: "Creamy mushroom soup", icon: "🍲", badge: "" },
+  { id: "M38", name: "Cream of Chicken Soup", price: 260, cat: "Soups & Starters", desc: "Creamy chicken soup", icon: "🍲", badge: "" },
+  { id: "M39", name: "Garlic Toast", price: 160, cat: "Soups & Starters", desc: "Toasted garlic bread", icon: "🍞", badge: "" },
+  { id: "M40", name: "Cheese Garlic Toast", price: 190, cat: "Soups & Starters", desc: "Garlic toast with cheese", icon: "🧀", badge: "" },
+  { id: "M41", name: "PANKO CRISPY Paneer", price: 240, cat: "Soups & Starters", desc: "Crispy panko paneer", icon: "🧀", badge: "" },
+  { id: "M42", name: "Cheese Beignets", price: 260, cat: "Soups & Starters", desc: "Crispy cheese beignets", icon: "🧀", badge: "" },
+  { id: "M43", name: "Chicken FRITTERS", price: 280, cat: "Soups & Starters", desc: "Crispy chicken fritters", icon: "🍗", badge: "" },
+  { id: "M44", name: "Panko Crispy Chicken", price: 320, cat: "Soups & Starters", desc: "Panko crusted chicken", icon: "🍗", badge: "" },
+  { id: "M45", name: "Golden FRIED Prawn", price: 340, cat: "Soups & Starters", desc: "Golden fried prawns", icon: "🍤", badge: "" },
+  { id: "M46", name: "Crispy Fried SQUID", price: 360, cat: "Soups & Starters", desc: "Crispy fried squid", icon: "🦑", badge: "" },
+  { id: "M47", name: "Butter Garlic Prawn", price: 380, cat: "Soups & Starters", desc: "Prawns in butter garlic sauce", icon: "🍤", badge: "" },
+  { id: "M48", name: "Chicken Chaiyo", price: 400, cat: "Soups & Starters", desc: "Cafe Chaiyo chicken special", icon: "🍗", badge: "" },
+  { id: "M49", name: "Seafood Chaiyo", price: 450, cat: "Soups & Starters", desc: "Cafe Chaiyo seafood special", icon: "🍤", badge: "" },
+  { id: "M50", name: "Vegetable Pasta", price: 390, cat: "Pasta & Main Course", desc: "Vegetable pasta", icon: "🍝", badge: "" },
+  { id: "M51", name: "Chicken Pasta", price: 440, cat: "Pasta & Main Course", desc: "Chicken pasta", icon: "🍝", badge: "" },
+  { id: "M52", name: "Seafood Pasta", price: 450, cat: "Pasta & Main Course", desc: "Seafood pasta", icon: "🍝", badge: "" },
+  { id: "M53", name: "Vegetable lasagna", price: 520, cat: "Pasta & Main Course", desc: "Vegetable lasagna", icon: "🍝", badge: "" },
+  { id: "M54", name: "Vegetable Gratiné", price: 490, cat: "Pasta & Main Course", desc: "Vegetable gratiné", icon: "🍽️", badge: "" },
+  { id: "M55", name: "Chicken lasagna", price: 580, cat: "Pasta & Main Course", desc: "Chicken lasagna", icon: "🍝", badge: "" },
+  { id: "M56", name: "Chicken with Mushroom/Pepper Sauce", price: 620, cat: "Pasta & Main Course", desc: "Chicken with mushroom or pepper sauce", icon: "🍽️", badge: "" },
+  { id: "M57", name: "Bolognese (Chicken/Beef)", price: 460, cat: "Pasta & Main Course", desc: "Bolognese spaghetti", icon: "🍝", badge: "" },
+  { id: "M58", name: "Pesto (Vegetable/Chicken)", price: 420, cat: "Pasta & Main Course", desc: "Pesto spaghetti", icon: "🍝", badge: "" },
+  { id: "M59", name: "Aglio e Olio", price: 400, cat: "Pasta & Main Course", desc: "Garlic and olive oil spaghetti", icon: "🍝", badge: "" },
+  { id: "M60", name: "Steak with Whisky Sauce", price: 680, cat: "Pasta & Main Course", desc: "Beef steak with whisky sauce", icon: "🥩", badge: "" },
+  { id: "M61", name: "Steak with Mushroom/Pepper Sauce", price: 740, cat: "Pasta & Main Course", desc: "Beef steak with mushroom or pepper sauce", icon: "🥩", badge: "" },
+  { id: "M62", name: "Sea Food Platter", price: 950, cat: "Pasta & Main Course", desc: "Mixed seafood platter", icon: "🍤", badge: "" },
+  { id: "M63", name: "Vegetable Burger", price: 280, cat: "Burgers & Pizzas", desc: "Vegetable burger", icon: "🍔", badge: "" },
+  { id: "M64", name: "Chicken Burger", price: 320, cat: "Burgers & Pizzas", desc: "Chicken burger", icon: "🍔", badge: "" },
+  { id: "M65", name: "Steak Burger", price: 350, cat: "Burgers & Pizzas", desc: "Steak burger", icon: "🍔", badge: "" },
+  { id: "M66", name: "Margherita", price: 380, cat: "Burgers & Pizzas", desc: "Tomato, mozzarella, olive oil and basil pizza", icon: "🍕", badge: "" },
+  { id: "M67", name: "Legumazza", price: 420, cat: "Burgers & Pizzas", desc: "Grilled vegetable pizza with pesto", icon: "🍕", badge: "" },
+  { id: "M68", name: "Oh Yah, It's Fiery", price: 440, cat: "Burgers & Pizzas", desc: "Fiery peri-peri chicken pizza", icon: "🍕", badge: "" },
+  { id: "M69", name: "Pepperoni", price: 480, cat: "Burgers & Pizzas", desc: "Pepperoni chicken pizza", icon: "🍕", badge: "" },
+  { id: "M70", name: "Seafood Pizza", price: 500, cat: "Burgers & Pizzas", desc: "Prawn, squid and fish pizza", icon: "🍕", badge: "" },
+  { id: "M71", name: "Chocolate Mousse", price: 220, cat: "Desserts & Cookies", desc: "Chocolate mousse", icon: "🍨", badge: "" },
+  { id: "M72", name: "Caramel Banana Delight", price: 250, cat: "Desserts & Cookies", desc: "Caramel banana dessert", icon: "🍌", badge: "" },
+  { id: "M73", name: "Flavored Cheesecake", price: 320, cat: "Desserts & Cookies", desc: "Flavored cheesecake", icon: "🍰", badge: "" },
+  { id: "M74", name: "Tiramisu", price: 350, cat: "Desserts & Cookies", desc: "Classic tiramisu", icon: "🍰", badge: "" },
+  { id: "M75", name: "Coffee Custard", price: 300, cat: "Desserts & Cookies", desc: "Coffee custard", icon: "🍮", badge: "" },
+  { id: "M76", name: "Butter Cookie", price: 130, cat: "Desserts & Cookies", desc: "Butter cookie", icon: "🍪", badge: "" },
+  { id: "M77", name: "Orange Cookie", price: 130, cat: "Desserts & Cookies", desc: "Orange cookie", icon: "🍪", badge: "" },
+  { id: "M78", name: "Coconut Cookie", price: 130, cat: "Desserts & Cookies", desc: "Coconut cookie", icon: "🍪", badge: "" },
+  { id: "M79", name: "Oat & Walnut Cookie", price: 150, cat: "Desserts & Cookies", desc: "Oat and walnut cookie", icon: "🍪", badge: "" },
+  { id: "M80", name: "Vegan Cookie", price: 150, cat: "Desserts & Cookies", desc: "Vegan cookie", icon: "🍪", badge: "" }
 ];
 
 const VEN0 = [
@@ -55,23 +129,19 @@ const VEN0 = [
   ["DairyFresh Milk Co","Pooja Verma","9822334455","pooja@dairyfresh.in","Chennai","Active","Chennai, Tamil Nadu","33 Guindy Ind Estate, Chennai","Toned, Almond & Oat Milk","7 Days","Daily morning chilled dispatch."]
 ];
 
-const STK0 = [
-  ["Cappuccino","Beverages","BEV001",50,120,"FreshFoods Pvt Ltd",10,"Chennai - Main Store","14 Oct 2026, 09:10 AM"],
-  ["Cold Coffee","Beverages","BEV002",30,150,"Beverage Distributors",10,"Chennai - Main Store","14 Oct 2026, 09:10 AM"],
-  ["Iced Tea","Beverages","BEV003",12,100,"Beverage Distributors",10,"Chennai - Main Store","14 Oct 2026, 09:10 AM"],
-  ["Veg Sandwich","Snacks","SNK001",25,80,"FreshFoods Pvt Ltd",15,"Chennai - Counter 1","14 Oct 2026, 09:10 AM"],
-  ["Paneer Pizza","Snacks","SNK002",8,200,"DairyLand Suppliers",10,"Chennai - Kitchen","14 Oct 2026, 09:10 AM"],
-  ["Chocolate Muffin","Bakery","BAK001",0,90,"Bakery Supplies",10,"Chennai - Bakery Rack","14 Oct 2026, 09:10 AM"],
-  ["Marble Cake","Bakery","BAK002",15,110,"Bakery Supplies",10,"Chennai - Bakery Rack","14 Oct 2026, 09:10 AM"],
-  ["French Fries","Snacks","SNK003",40,130,"FreshFoods Pvt Ltd",15,"Chennai - Freezer","14 Oct 2026, 09:10 AM"],
-  ["Burger","Snacks","SNK004",20,180,"FreshFoods Pvt Ltd",10,"Chennai - Kitchen","14 Oct 2026, 09:10 AM"],
-  ["Chicken Burger","Snacks","SNK005",0,220,"FreshFoods Pvt Ltd",8,"Chennai - Kitchen","14 Oct 2026, 09:10 AM"],
-  ["Espresso","Beverages","BEV004",60,90,"RoastMasters Co",15,"Chennai - Espresso Bar","14 Oct 2026, 09:10 AM"],
-  ["Caramel Macchiato","Beverages","BEV005",22,190,"Beverage Distributors",10,"Chennai - Main Store","14 Oct 2026, 09:10 AM"],
-  ["Garlic Bread","Snacks","SNK006",18,110,"Bakery Supplies",10,"Chennai - Kitchen","14 Oct 2026, 09:10 AM"],
-  ["Blueberry Cheesecake","Bakery","BAK003",6,180,"Bakery Supplies",8,"Chennai - Chiller","14 Oct 2026, 09:10 AM"],
-  ["Hot Chocolate","Beverages","BEV006",35,140,"DairyFresh Milk Co",10,"Chennai - Main Store","14 Oct 2026, 09:10 AM"]
-];
+const STK0 = MENU_ITEMS.map((item, index) => [
+  item.name,
+  item.cat,
+  `SKU-${String(index + 1).padStart(3, "0")}`,
+  50,
+  item.price,
+  "",
+  10,
+  "Cafe Main Store",
+  "Menu imported from Café Losako menu"
+]);
+const MENU_VERSION = "cafe-losako-menu-v1";
+const VENDOR_STORAGE_KEY = "cafe_vendors";
 
 /* ---------- Default Dine-in Tables Data (Table Revenue & Income) ---------- */
 /* ---------- Default Dine-in Tables Data (5 Tables G + 5 Tables C) ---------- */
@@ -176,8 +246,7 @@ const calculateBill = (table) => {
   }, {});
   const lines = Object.values(merged).map((item) => ({ ...item, lineTotal: item.qty * item.price }));
   const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
-  const tax = Math.round(subtotal * 0.05 * 100) / 100;
-  return { lines, subtotal, tax, discount: 0, total: subtotal + tax };
+  return { lines, subtotal, total: subtotal };
 };
 
 const deductInventoryForSale = (saleId, lines) => {
@@ -677,7 +746,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     }));
   }, [currentTable.id, setTables, collectionActive]);
 
-  const categories = ["All", "Hot Coffee", "Cold Beverages", "Snacks & Bites", "Bakery & Desserts"];
+  const categories = ["All", "Coffees", "Chocolate", "Sandwiches & Toasts", "Salads & Juices", "Soups & Starters", "Pasta & Main Course", "Burgers & Pizzas", "Desserts & Cookies"];
   const filteredMenu = MENU_ITEMS.filter((it) => selectedCat === "All" || it.cat === selectedCat);
 
   // Cart operations
@@ -703,9 +772,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   });
 
   const cartCount = cartItemsArray.reduce((acc, it) => acc + it.qty, 0);
-  const cartSubtotal = cartItemsArray.reduce((acc, it) => acc + (it.qty * it.price), 0);
-  const cartTax = Math.round(cartSubtotal * 0.05);
-  const cartGrandTotal = cartSubtotal + cartTax;
+  const cartGrandTotal = cartItemsArray.reduce((acc, it) => acc + (it.qty * it.price), 0);
 
   // Real-time sync with Kitchen Ticket
   const activeTicket = (kitchenOrders && orderNumber)
@@ -1104,16 +1171,8 @@ created_at: new Date(newTicket.timestamp).toISOString()
 
                 {/* Bill Breakdown */}
                 <div className="bill-summary" style={{ marginTop: 14 }}>
-                  <div className="bill-line">
-                    <span>Items Subtotal:</span>
-                    <span>₹{cartSubtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="bill-line">
-                    <span>Cafe GST (5%):</span>
-                    <span>₹{cartTax.toFixed(2)}</span>
-                  </div>
                   <div className="bill-line total">
-                    <span>Total Added to {currentTable.name}:</span>
+                    <span>Item Amount:</span>
                     <span>₹{cartGrandTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -2996,8 +3055,17 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
 }
 
 function Glossary({ go, sub, currentUser }) {
-  const [ven, setVen] = useState(VEN0), [stk, setStk] = useState(() => {
+  const [ven, setVen] = useState(() => {
     try {
+      const saved = JSON.parse(localStorage.getItem(VENDOR_STORAGE_KEY) || "null");
+      return Array.isArray(saved) ? saved : VEN0;
+    } catch (error) {
+      console.error("Unable to restore vendor records.", error);
+      return VEN0;
+    }
+  }), [stk, setStk] = useState(() => {
+    try {
+      if (localStorage.getItem("cafe_menu_version") !== MENU_VERSION) return STK0;
       const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "null");
       return Array.isArray(saved) && saved.length
         ? saved.map((item) => [item.name, item.category, item.id, item.stock, item.price, "", "", "", ""])
@@ -3016,6 +3084,11 @@ function Glossary({ go, sub, currentUser }) {
   const PAGE_SIZE = 5;
 
   useEffect(() => {
+    localStorage.setItem(VENDOR_STORAGE_KEY, JSON.stringify(ven));
+  }, [ven]);
+
+  useEffect(() => {
+    localStorage.setItem("cafe_menu_version", MENU_VERSION);
     const inventory = stk.map((row) => ({
       id: row[2],
       name: row[0],
@@ -3067,8 +3140,12 @@ function Glossary({ go, sub, currentUser }) {
         setVPage(1);
       } else {
         const next = [...ven];
+        const previousName = next[editModal.index]?.[0];
         next[editModal.index] = savedData;
         setVen(next);
+        if (previousName && previousName !== savedData[0]) {
+          setStk((current) => current.map((row) => row[5] === previousName ? [...row.slice(0, 5), savedData[0], ...row.slice(6)] : row));
+        }
       }
     } else {
       if (editModal.mode === "add") {
@@ -3274,7 +3351,20 @@ function Glossary({ go, sub, currentUser }) {
           </div>
 
           <div className="card g">
-            <div className="ch">👥 Vendor Details</div>
+            <div className="ch" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>👥 Vendor Details</span>
+              {v && (
+                <button
+                  type="button"
+                  className="close-btn"
+                  onClick={() => setVi(null)}
+                  title="Close vendor details"
+                  aria-label="Close vendor details"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             <div className="cb">
               {v ? (
                 <>
@@ -3783,10 +3873,7 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
           ))}</tbody>
         </table>}
         {hasOrders && <div style={{ marginTop: 12, borderTop: "1px solid #cbd5e1", paddingTop: 8, display: "grid", gap: 5, fontSize: 13 }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><b>₹{bill.subtotal.toFixed(2)}</b></div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax (5%)</span><b>₹{bill.tax.toFixed(2)}</b></div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><b>₹{bill.discount.toFixed(2)}</b></div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Final Total</b><b>₹{bill.total.toFixed(2)}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Item Amount</b><b>₹{bill.total.toFixed(2)}</b></div>
           <div><b>Payment status:</b> {table.paymentStatus || "Unpaid"} {table.paymentStatus === "Paid" ? `(${table.paymentMethod})` : ""}</div>
         </div>}
 
@@ -3812,6 +3899,16 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
 function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
   const [products, setProducts] = useState(() => {
     try {
+      if (localStorage.getItem("cafe_menu_version") !== MENU_VERSION) {
+        return STK0.map((row, index) => ({
+          id: row[2] || `SKU-${index + 1}`,
+          name: row[0],
+          category: row[1] || "Other",
+          stock: Number(row[3]) || 0,
+          price: Number(row[4]) || 0,
+          cost: null
+        }));
+      }
       const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "null");
       return Array.isArray(saved) ? saved : STK0.map((row, index) => ({
         id: row[2] || `SKU-${index + 1}`,
@@ -3826,6 +3923,9 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
       return [];
     }
   });
+  useEffect(() => {
+    localStorage.setItem("cafe_menu_version", MENU_VERSION);
+  }, []);
   const [cart, setCart] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [error, setError] = useState("");
@@ -6222,7 +6322,9 @@ tr.row{cursor:pointer}tr.row.sel{background:#e3f0ff}
 @media print{
   body *{visibility:hidden!important}
   .bill-print-area,.bill-print-area *{visibility:visible!important}
-  .bill-print-area{position:absolute;left:0;top:0;width:100%;max-height:none;box-shadow:none;border-radius:0}
+  .bill-print-area{position:absolute;left:0;top:0;width:58mm;max-height:none;min-height:0;box-sizing:border-box;overflow:visible;box-shadow:none;border-radius:0;padding:3mm!important;font-size:11px!important}
+  .bill-print-area h2{font-size:16px!important}
+  .bill-print-area table{font-size:10px!important}
   .bill-print-area button,.bill-print-area select,.bill-print-area input{display:none!important}
 }
 
