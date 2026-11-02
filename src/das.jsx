@@ -2366,6 +2366,14 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const todayLedger = [...dailySales, ...currentTableSales];
   const salesCash = todayLedger.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const salesGPay = todayLedger.filter((sale) => ["gpay", "google pay", "upi"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const collectionSales = [...activeSessionSales, ...currentTableSales];
+  const collectionCash = collectionSales
+    .filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash")
+    .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const collectionGPay = collectionSales
+    .filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase()))
+    .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const totalCollectionIncome = collectionCash + collectionGPay;
   const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
   const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
   const netCash = salesCash - expenseCash;
@@ -2495,8 +2503,8 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Today Cash:</span>
-                        <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
+                        <span>Total Cash:</span>
+                        <b style={{ color: "#15803d" }}>+{inr(collectionCash)}</b>
                       </div>
                     </div>
                   </div>
@@ -2509,11 +2517,15 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Today GPay:</span>
-                        <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
+                        <span>Total GPay / Online:</span>
+                        <b style={{ color: "#7e22ce" }}>+{inr(collectionGPay)}</b>
                       </div>
                     </div>
                   </div>
+                </div>
+                <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+                  <span style={{ color: "#475569", fontWeight: 700 }}>Total Collection Income:</span>
+                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(totalCollectionIncome)}</b>
                 </div>
               </div>
             </div>
@@ -5367,11 +5379,25 @@ export default function App() {
       result[mode] = (result[mode] || 0) + Number(sale.amount || 0);
       return result;
     }, {});
+    const totalCash = sessionSales
+      .filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash")
+      .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+    const totalGPay = sessionSales
+      .filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase()))
+      .reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
     setCollection((current) => ({
       ...current,
       active: false,
       stoppedAt: new Date().toISOString(),
-      finalSummary: { orders, amount, paymentBreakdown, sessionId: current.sessionId }
+      finalSummary: {
+        orders,
+        amount,
+        paymentBreakdown,
+        totalCash,
+        totalGPay,
+        totalCollectionIncome: totalCash + totalGPay,
+        sessionId: current.sessionId
+      }
     }));
   };
 
