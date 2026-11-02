@@ -99,19 +99,26 @@ const INITIAL_TABLES = TABLES0.map((table) => ({
 const normalizeTables = (saved) => {
   if (!Array.isArray(saved) || saved.length === 0) return INITIAL_TABLES;
   const today = localDateKey();
+  let closedOrderIds = [];
+  try {
+    const savedClosedOrderIds = JSON.parse(localStorage.getItem("cafe_closed_bill_orders") || "[]");
+    closedOrderIds = Array.isArray(savedClosedOrderIds) ? savedClosedOrderIds : [];
+  } catch (error) {
+    console.error("Unable to restore closed bill records.", error);
+  }
   return saved.map((table, index) => ({
     ...table,
-    status: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? "Occupied" : "Free",
-    sessionId: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? table.sessionId || null : null,
-    customer: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today) ? table.customer || null : null,
+    status: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today && !closedOrderIds.includes(order.id)) ? "Occupied" : "Free",
+    sessionId: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today && !closedOrderIds.includes(order.id)) ? table.sessionId || null : null,
+    customer: (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === today && !closedOrderIds.includes(order.id)) ? table.customer || null : null,
     orders: Array.isArray(table.orders)
-      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today)
+      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today && !closedOrderIds.includes(order.id))
       : [],
     order: Array.isArray(table.orders)
-      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today)
+      ? table.orders.filter((order) => String(order.createdAt || "").slice(0, 10) === today && !closedOrderIds.includes(order.id))
         .flatMap((order) => (order.items || []).map((item) => [item.name, item.qty, item.price, "QR"]))
       : [],
-    sessionHistory: [],
+    sessionHistory: Array.isArray(table.sessionHistory) ? table.sessionHistory : [],
     displayName: table.displayName || `Table ${pad(index + 1)}`
   }));
 };
@@ -140,6 +147,35 @@ const calculateBill = (table) => {
   const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
   const tax = Math.round(subtotal * 0.05 * 100) / 100;
   return { lines, subtotal, tax, discount: 0, total: subtotal + tax };
+};
+
+const deductInventoryForSale = (saleId, lines) => {
+  try {
+    const consumed = JSON.parse(localStorage.getItem("cafe_stock_sale_consumed") || "[]");
+    if (consumed.includes(saleId)) return;
+
+    const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "[]");
+    if (!Array.isArray(saved) || saved.length === 0) return;
+
+    const quantities = new Map();
+    lines.forEach((line) => {
+      const key = String(line.menuId || line.name).trim().toLowerCase();
+      quantities.set(key, (quantities.get(key) || 0) + Number(line.qty || 0));
+    });
+
+    const nextInventory = saved.map((product) => {
+      const key = String(product.id || product.name).trim().toLowerCase();
+      const quantity = quantities.get(key) || quantities.get(String(product.name).trim().toLowerCase()) || 0;
+      return quantity > 0
+        ? { ...product, stock: Math.max(0, Number(product.stock || 0) - quantity) }
+        : product;
+    });
+
+    localStorage.setItem("cafe_normal_inventory", JSON.stringify(nextInventory));
+    localStorage.setItem("cafe_stock_sale_consumed", JSON.stringify([...consumed, saleId]));
+  } catch (error) {
+    console.error("Unable to deduct sold items from inventory.", error);
+  }
 };
 
 /* ---------- Initial Kitchen Order Tickets (KDS) ---------- */
@@ -2203,7 +2239,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   }, 0) : 0;
   const baseTodaySales = ledgerSessionSales + legacySessionSales;
   const currentTableSales = tables
-    .filter((table) => (table.orders || []).some((order) => String(order.createdAt || "").slice(0, 10) === todayKey))
+    .filter((table) => table.paymentStatus === "Paid" && (table.orders || []).some((order) => localDateKey(order.createdAt) === todayKey))
     .map((table) => {
       const bill = calculateBill(table);
       return {
@@ -2221,7 +2257,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const source = normalSales.find((entry) => entry.id === sale.id);
     return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   };
-  const dailySales = salesLedger.filter((sale) => String(sale.createdAt || "").slice(0, 10) === todayKey);
+  const dailySales = salesLedger.filter((sale) => localDateKey(sale.createdAt) === todayKey);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
     + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
   const [expList, setExpList] = useState(() => {
@@ -3391,11 +3427,9 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
         }]));
       }
     }
+    const saleId = `TABLE-${table.sessionId || table.id}`;
+    deductInventoryForSale(saleId, bill.lines);
     onUpdateTable(table.id, (current) => ({ ...current, paymentStatus: "Paid", paymentMethod }));
-  };
-
-  const printBill = () => {
-    window.print();
   };
 
   return (
@@ -3448,7 +3482,6 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
                 <option>Cash</option><option>Card</option><option>GPay</option>
               </select>
             </label>
-            <button type="button" className="btn-save" onClick={printBill}>Print Bill</button>
             {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
           </div>
         )}
@@ -3662,15 +3695,59 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
     setBillTableId((current) => current === table.id ? null : current);
   };
   const closeTable = (table, index) => {
-    if (table.status !== "Occupied" || !window.confirm(`Close ${tableLabel(table, index)} after payment?`)) return;
+    if (table.status !== "Occupied") return;
     if (table.paymentStatus !== "Paid") {
       window.alert("Mark the bill as Paid before closing this table session.");
       return;
     }
+    const bill = calculateBill(table);
+    const closedOrderIds = (table.orders || []).map((order) => order.id).filter(Boolean);
+    try {
+      const savedClosedOrderIds = JSON.parse(localStorage.getItem("cafe_closed_bill_orders") || "[]");
+      const knownClosedOrderIds = new Set(Array.isArray(savedClosedOrderIds) ? savedClosedOrderIds : []);
+      closedOrderIds.forEach((orderId) => knownClosedOrderIds.add(orderId));
+      localStorage.setItem("cafe_closed_bill_orders", JSON.stringify([...knownClosedOrderIds]));
+    } catch (error) {
+      console.error("Unable to preserve closed bill order IDs.", error);
+      return;
+    }
+    const session = (() => {
+      try { return JSON.parse(localStorage.getItem("cafe_collection_session") || "null"); }
+      catch { return null; }
+    })();
+    if (session?.active && session.sessionId) {
+      try {
+        const ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]");
+        const saleId = `TABLE-${table.sessionId || table.id}`;
+        if (!ledger.some((sale) => sale.id === saleId)) {
+          localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
+            id: saleId,
+            sessionId: session.sessionId,
+            source: "Table",
+            sourceId: saleId,
+            tableId: table.id,
+            amount: Number(bill.total || 0),
+            itemCount: bill.lines.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+            paymentMethod: table.paymentMethod || "Cash",
+            createdAt: new Date().toISOString()
+          }]));
+        }
+      } catch (error) {
+        console.error("Unable to preserve closed table sale.", error);
+        return;
+      }
+    }
     updateTable(table.id, (current) => ({
       ...current,
       status: "Free",
-      sessionHistory: [...(current.sessionHistory || []), { ...current, closedAt: new Date().toISOString() }],
+      sessionHistory: [...(current.sessionHistory || []), {
+        ...current,
+        closedAt: new Date().toISOString(),
+        closed: true,
+        closedAmount: Number(bill.total || 0),
+        paymentStatus: "Paid",
+        paymentMethod: current.paymentMethod || "Cash"
+      }],
       sessionId: null,
       customer: null,
       orders: [],
@@ -3717,7 +3794,7 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                   👁️ VIEW BILL
                 </button>
               )}
-              <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || currentUser?.role !== "admin"}>Mark as Free</button>
+              <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || currentUser?.role !== "admin"}>Mark as Read</button>
             </article>
           );
         })}
@@ -5071,6 +5148,13 @@ export default function App() {
 
     const applyIncomingOrder = (row) => {
       const ticket = toKitchenTicket(row);
+      let closedOrderIds = [];
+      try {
+        closedOrderIds = JSON.parse(localStorage.getItem("cafe_closed_bill_orders") || "[]");
+      } catch (error) {
+        console.error("Unable to read closed bill records.", error);
+      }
+      if (closedOrderIds.includes(ticket.id)) return;
 
       setKitchenOrders((previous) => {
         if (previous.some((order) => order.id === ticket.id)) return previous;
@@ -5283,7 +5367,7 @@ export default function App() {
   };
 
   const stopCollection = () => {
-    if (!collection.active || !window.confirm("Are you sure you want to stop this collection?")) return;
+    if (!collection.active) return;
     let ledger = [];
     try { ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); } catch { ledger = []; }
     const sessionSales = ledger.filter((sale) => sale.sessionId === collection.sessionId);
