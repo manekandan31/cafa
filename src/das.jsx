@@ -2492,17 +2492,8 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Sales Cash:</span>
+                        <span>Today Cash:</span>
                         <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Expenses (Cash):</span>
-                        <b style={{ color: "#c4161c" }}>-{inr(expenseCash)}</b>
-                      </div>
-                      <div style={{ height: 1, background: "#bbf7d0", margin: "2px 0" }} />
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                        <span style={{ fontWeight: 700, fontSize: 11.5 }}>Net Cash:</span>
-                        <b style={{ fontSize: 16, color: netCash >= 0 ? "#15803d" : "#c4161c", fontWeight: 800 }}>{inr(netCash)}</b>
                       </div>
                     </div>
                   </div>
@@ -2515,25 +2506,11 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Sales GPay:</span>
+                        <span>Today GPay:</span>
                         <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Expenses (GPay):</span>
-                        <b style={{ color: "#c4161c" }}>-{inr(expenseGPay)}</b>
-                      </div>
-                      <div style={{ height: 1, background: "#e9d5ff", margin: "2px 0" }} />
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                        <span style={{ fontWeight: 700, fontSize: 11.5 }}>Net GPay:</span>
-                        <b style={{ fontSize: 16, color: netGPay >= 0 ? "#7e22ce" : "#c4161c", fontWeight: 800 }}>{inr(netGPay)}</b>
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
-                  <span style={{ color: "#475569", fontWeight: 600 }}>Total Balance (Cash + GPay):</span>
-                  <b style={{ fontSize: 15, color: actualProfit >= 0 ? "#0d8a2f" : "#c4161c", fontWeight: 800 }}>{inr(actualProfit)}</b>
                 </div>
               </div>
             </div>
