@@ -5837,7 +5837,9 @@ export default function App() {
     const { error: sharedDateError } = await supabase
       .from("cafe_sales")
       .update({ sale_date: calendarDate })
-      .eq("session_id", collection.sessionId);
+      .eq("sale_date", localDateKey(now))
+      .gte("created_at", collection.startedAt)
+      .lte("created_at", now);
     if (sharedDateError) {
       console.error("Unable to apply the collection date to shared sales.", sharedDateError);
       return;
