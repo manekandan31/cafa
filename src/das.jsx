@@ -2465,11 +2465,11 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
         itemCount: Number(sale.itemCount || (sale.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0))
       });
     };
+    sharedSales.forEach((sale) => add(sale));
     normalSales.forEach((sale) => {
       if (sale.paymentStatus === "Paid") add(sale);
     });
     salesLedger.forEach((sale) => add(sale));
-    sharedSales.forEach((sale) => add(sale));
     tables.forEach((table) => {
       if (table.paymentStatus === "Paid" && (table.orders || []).length) {
         add({ ...table, amount: calculateBill(table).total, createdAt: table.orders[0]?.createdAt }, `TABLE-${table.sessionId || table.id}`);
