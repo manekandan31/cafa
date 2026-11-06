@@ -2573,11 +2573,13 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const [expReason, setExpReason] = useState("");
   const [expSupplier, setExpSupplier] = useState(VEN0[0]?.[0] || "");
   const [expReference, setExpReference] = useState("");
+  const [expDate, setExpDate] = useState(localDateKey());
   const addExpense = async () => {
     const amt = parseFloat(expAmt);
     if (!amt || amt <= 0) return;
     if (expCat === "Others" && !expReason.trim()) return;
-    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: localDateKey(), time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expDate)) return;
+    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: expDate, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
     const { error } = await supabase.from("cafe_expenses").insert({
       id: String(entry.id),
       expense_date: entry.date,
@@ -2601,7 +2603,8 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const removeExpense = (id) => {
     setExpList(prev => prev.filter(e => e.id !== id));
   };
-  const totalExpense = expList.reduce((s, x) => s + x.amount, 0);
+  const todayExpenses = combinedExpenses.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
+  const totalExpense = todayExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
   const actualProfit = baseTodaySales - totalExpense;
 
   const todayLedger = [...dailySales, ...currentTableSales];
@@ -2857,6 +2860,10 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <input type="text" placeholder="Enter reason for expense..." value={expReason} onChange={(e) => setExpReason(e.target.value)} className="exp-input" />
                   </div>
                 )}
+                <div className="exp-field">
+                  <label>📅 Expense date</label>
+                  <input type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} className="exp-input" />
+                </div>
                 <div className="exp-field">
                   <label>🔖 Invoice / Reference</label>
                   <input type="text" placeholder="Optional reference number" value={expReference} onChange={(e) => setExpReference(e.target.value)} className="exp-input" />
