@@ -2639,8 +2639,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const removeExpense = (id) => {
     setExpList(prev => prev.filter(e => e.id !== id));
   };
-  const todayExpenses = currentSessionExpenses.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
-  const totalExpense = todayExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const totalExpense = currentSessionExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
   const actualProfit = baseTodaySales - totalExpense;
 
   const todayLedger = [...dailySales, ...currentTableSales];
