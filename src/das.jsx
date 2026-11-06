@@ -3964,7 +3964,7 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
         <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <b>Total: ₹{total.toFixed(2)}</b>
           <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-            <option>Cash</option><option>GPay / UPI</option><option>Card</option>
+            <option>Cash</option><option>GPay</option><option>Card</option>
           </select>
         </div>
         {error && <div style={{ color: "#b91c1c", fontWeight: 700, fontSize: 12, marginTop: 8 }}>{error}</div>}
