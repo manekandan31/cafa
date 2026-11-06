@@ -2784,7 +2784,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total Cash:</span>
-                        <b style={{ color: "#15803d" }}>+{inr(lifetimeCash)}</b>
+                        <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
                       </div>
                     </div>
                   </div>
@@ -2798,14 +2798,14 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total GPay / Online:</span>
-                        <b style={{ color: "#7e22ce" }}>+{inr(lifetimeGPay)}</b>
+                        <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
                   <span style={{ color: "#475569", fontWeight: 700 }}>Total Collection:</span>
-                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(lifetimeIncome)}</b>
+                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(salesCash + salesGPay)}</b>
                 </div>
               </div>
             </div>
