@@ -2100,6 +2100,8 @@ function LoginView({ onLogin }) {
 /* ---------- Home (Kitchen removed - 3 Main Modules: Review, Glossary, Tables) ---------- */
 function Home({ go, currentUser, tables, collection, onStartCollection, onStopCollection }) {
   const [stopDate, setStopDate] = useState(localDateKey());
+  const [stopError, setStopError] = useState("");
+  const [stopping, setStopping] = useState(false);
   const totalOrders = tables.reduce((count, table) => count + (table.order || []).length, 0);
   const totalAmount = tables.reduce((sum, table) => sum + (table.order || []).reduce((tableSum, item) => tableSum + (Number(item[1]) * Number(item[2])), 0), 0);
   const startedAt = collection.startedAt ? new Date(collection.startedAt).toLocaleString() : "—";
@@ -2130,10 +2132,29 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
                     Calendar date
                     <input type="date" value={stopDate} onChange={(e) => setStopDate(e.target.value)} />
                   </label>
-                  <button type="button" className="btn-del" onClick={() => onStopCollection(stopDate)}>Stop Collection</button>
+                  <button
+                    type="button"
+                    className="btn-del"
+                    disabled={stopping}
+                    onClick={async () => {
+                      setStopError("");
+                      setStopping(true);
+                      try {
+                        await onStopCollection(stopDate);
+                      } catch (error) {
+                        console.error("Unable to stop collection.", error);
+                        setStopError(error.message || "Unable to stop collection. Please try again.");
+                      } finally {
+                        setStopping(false);
+                      }
+                    }}
+                  >
+                    {stopping ? "Stopping…" : "Stop Collection"}
+                  </button>
                 </>}
               </div>
             </div>
+            {stopError && <div style={{ marginTop: 10, color: "#b91c1c", fontWeight: 700 }}>⚠️ {stopError}</div>}
             {collection.stoppedAt && !collection.active && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #e2e8f0", color: "#334155", fontSize: 13 }}>
                 <b>Final collection summary:</b> {collection.finalSummary?.orders || totalOrders} orders · ₹{Number(collection.finalSummary?.amount ?? totalAmount).toLocaleString("en-IN")}
@@ -5828,9 +5849,9 @@ export default function App() {
   const stopCollection = async (calendarDate = localDateKey()) => {
     if (!collection.active) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(calendarDate)) {
-      console.error("A valid calendar date is required before stopping the collection.");
-      return;
+      throw new Error("A valid calendar date is required before stopping the collection.");
     }
+    const now = new Date().toISOString();
     let ledger = [];
     try { ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); } catch { ledger = []; }
     const sessionSales = ledger
@@ -5846,7 +5867,7 @@ export default function App() {
       .lte("created_at", now);
     if (sharedDateError) {
       console.error("Unable to apply the collection date to shared sales.", sharedDateError);
-      return;
+      throw new Error(`Shared sales could not be dated: ${sharedDateError.message}`);
     }
     const amount = sessionSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
     const orders = sessionSales.length;
@@ -5864,7 +5885,7 @@ export default function App() {
     setCollection((current) => ({
       ...current,
       active: false,
-      stoppedAt: new Date().toISOString(),
+      stoppedAt: now,
       finalSummary: {
         orders,
         amount,
