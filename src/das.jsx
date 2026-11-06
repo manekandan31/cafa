@@ -2256,6 +2256,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
         paymentMethod: sale.payment_method || "Cash",
         createdAt: sale.created_at,
         reportDate: sale.sale_date,
+        sessionId: sale.session_id,
         itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
       })));
       setSharedExpenses((expenses || []).map((expense) => ({
@@ -2278,6 +2279,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           paymentMethod: sale.payment_method || "Cash",
           createdAt: sale.created_at,
           reportDate: sale.sale_date,
+          sessionId: sale.session_id,
           itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
         }, ...current]);
       })
@@ -2290,6 +2292,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           paymentMethod: sale.payment_method || "Cash",
           createdAt: sale.created_at,
           reportDate: sale.sale_date,
+          sessionId: sale.session_id,
           itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
         } : item));
       })
@@ -2392,6 +2395,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   };
   const dailySales = sharedSales
     .filter((sale, index, sales) => sales.findIndex((candidate) => candidate.id === sale.id) === index)
+    .filter((sale) => collection?.active && sale.sessionId === collection.sessionId)
     .filter((sale) => (sale.reportDate || sale.sale_date || localDateKey(sale.createdAt || sale.created_at)) === todayKey);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0);
   const dailyHourlySales = Array.from({ length: 14 }, () => 0);
@@ -2780,7 +2784,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total Cash:</span>
-                        <b style={{ color: "#15803d" }}>+{inr(lifetimeCash)}</b>
+                        <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
                       </div>
                     </div>
                   </div>
@@ -2794,14 +2798,14 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>Total GPay / Online:</span>
-                        <b style={{ color: "#7e22ce" }}>+{inr(lifetimeGPay)}</b>
+                        <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
                   <span style={{ color: "#475569", fontWeight: 700 }}>Total Collection Income:</span>
-                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(lifetimeIncome)}</b>
+                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(salesCash + salesGPay)}</b>
                 </div>
               </div>
             </div>
@@ -5867,9 +5871,7 @@ export default function App() {
     const { error: sharedDateError } = await supabase
       .from("cafe_sales")
       .update({ sale_date: calendarDate })
-      .eq("sale_date", localDateKey(now))
-      .gte("created_at", collection.startedAt)
-      .lte("created_at", now);
+      .eq("session_id", collection.sessionId);
     if (sharedDateError) {
       console.error("Unable to apply the collection date to shared sales.", sharedDateError);
       throw new Error(`Shared sales could not be dated: ${sharedDateError.message}`);
