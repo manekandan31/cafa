@@ -4367,6 +4367,14 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                 <span>🧾 Ordered items</span>
                 <b>{(table.orders || []).reduce((sum, order) => sum + (order.items || []).reduce((count, item) => count + Number(item.qty || 0), 0), 0)} · ₹{calculateBill(table).total.toFixed(2)}</b>
               </div>
+              <button
+                type="button"
+                className="btn-save"
+                onClick={() => { window.location.hash = `/order/${encodeURIComponent(table.id)}`; }}
+                style={{ width: "100%", minHeight: 42, fontWeight: 800, fontSize: 15, background: "#15803d", color: "#ffffff", border: "2px solid transparent", borderRadius: 8 }}
+              >
+                ➕ ADD ORDER
+              </button>
               {(table.orders || []).length > 0 && (
                 <div style={{ display: "grid", gap: 6 }}>
                   {(table.orders || []).map((order, orderIndex) => (
