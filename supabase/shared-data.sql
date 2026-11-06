@@ -44,6 +44,13 @@ create policy "Cafe members can add sales"
   to anon, authenticated
   with check (true);
 
+drop policy if exists "Cafe members can update sales" on public.cafe_sales;
+create policy "Cafe members can update sales"
+  on public.cafe_sales for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
 drop policy if exists "Cafe members can read expenses" on public.cafe_expenses;
 create policy "Cafe members can read expenses"
   on public.cafe_expenses for select

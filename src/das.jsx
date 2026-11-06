@@ -2234,6 +2234,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
         total: Number(sale.amount || 0),
         paymentMethod: sale.payment_method || "Cash",
         createdAt: sale.created_at,
+        reportDate: sale.sale_date,
         itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
       })));
       setSharedExpenses((expenses || []).map((expense) => ({
@@ -2255,8 +2256,21 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           total: Number(sale.amount || 0),
           paymentMethod: sale.payment_method || "Cash",
           createdAt: sale.created_at,
+          reportDate: sale.sale_date,
           itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
         }, ...current]);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "cafe_sales" }, ({ new: sale }) => {
+        setSharedSales((current) => current.map((item) => item.id === sale.id ? {
+          ...item,
+          ...sale,
+          amount: Number(sale.amount || 0),
+          total: Number(sale.amount || 0),
+          paymentMethod: sale.payment_method || "Cash",
+          createdAt: sale.created_at,
+          reportDate: sale.sale_date,
+          itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
+        } : item));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "cafe_expenses" }, ({ new: expense }) => {
         setSharedExpenses((current) => current.some((item) => String(item.id) === String(expense.id)) ? current : [{
