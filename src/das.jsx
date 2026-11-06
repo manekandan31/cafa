@@ -2420,13 +2420,16 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
       console.error(e);
     }
   }, [expList]);
+  const currentSessionExpenses = collection?.sessionId
+    ? expList.filter((expense) => expense.sessionId === collection.sessionId)
+    : [];
   const combinedExpenses = [...expList, ...sharedExpenses].filter((expense, index, expenses) =>
     expenses.findIndex((candidate) => String(candidate.id) === String(expense.id)) === index
   );
 
   const getDayExpenses = (m, d) => {
     const isToday = (m === 9 && d === 14) || (m === new Date().getMonth() && d === new Date().getDate());
-    if (isToday && expList && expList.length > 0) return expList;
+    if (isToday && currentSessionExpenses.length > 0) return currentSessionExpenses;
     const seed = (m * 31 + d);
     const vendorAmts = [450, 680, 520, 890, 350, 750, 620];
     const salaryAmts = [600, 800, 500, 750, 900];
@@ -2612,7 +2615,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     if (!amt || amt <= 0) return;
     if (expCat === "Others" && !expReason.trim()) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expDate)) return;
-    const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: expDate, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    const entry = { id: Date.now(), sessionId: collection?.sessionId || null, cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: expDate, time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
     const { error } = await supabase.from("cafe_expenses").insert({
       id: String(entry.id),
       expense_date: entry.date,
@@ -2636,7 +2639,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const removeExpense = (id) => {
     setExpList(prev => prev.filter(e => e.id !== id));
   };
-  const todayExpenses = expList.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
+  const todayExpenses = currentSessionExpenses.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
   const totalExpense = todayExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
   const actualProfit = baseTodaySales - totalExpense;
 
@@ -2689,8 +2692,8 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     .filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase()))
     .reduce((sum, sale) => sum + sale.amount, 0);
   const lifetimeIncome = lifetimeCash + lifetimeGPay;
-  const expenseCash = expList.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
-  const expenseGPay = expList.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
+  const expenseCash = currentSessionExpenses.filter(e => (e.mode || "Cash") === "Cash").reduce((s, x) => s + x.amount, 0);
+  const expenseGPay = currentSessionExpenses.filter(e => e.mode === "GPay").reduce((s, x) => s + x.amount, 0);
   const netCash = salesCash - expenseCash;
   const netGPay = salesGPay - expenseGPay;
   const todayCard = (
@@ -2914,7 +2917,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
 
             {/* Expense List */}
             <div className="card" style={{ borderColor: "#f0a9ad" }}>
-              <div className="ch" style={{ background: "linear-gradient(#e85d68, #c4161c)" }}>📋 Today's Expenses {expList.length > 0 && <span className="exp-count">{expList.length}</span>}</div>
+              <div className="ch" style={{ background: "linear-gradient(#e85d68, #c4161c)" }}>📋 Today's Expenses {currentSessionExpenses.length > 0 && <span className="exp-count">{currentSessionExpenses.length}</span>}</div>
               <div className="cb">
                 <div className="pe-hero-expense">
                   <div className="pe-expense-amount">
@@ -2922,13 +2925,13 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     <span className="pe-value expense">{inr(totalExpense)}</span>
                   </div>
                 </div>
-                {expList.length === 0 ? (
+                {currentSessionExpenses.length === 0 ? (
                   <div className="exp-empty">No expenses added yet. Use the form above to add expenses.</div>
                 ) : (
                   <div className="tw" style={{ maxHeight: 280, marginTop: 10 }}>
                     <table>
                       <thead><tr><th>#</th><th>Time</th><th>Category</th><th>Mode</th><th>Reason</th><th className="a">Amount</th><th></th></tr></thead>
-                      <tbody>{expList.map((e, i) => (
+                      <tbody>{currentSessionExpenses.map((e, i) => (
                         <tr key={e.id}>
                           <td>{i + 1}</td>
                           <td>{e.time}</td>
