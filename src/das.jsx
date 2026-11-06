@@ -2212,6 +2212,70 @@ function Home({ go, currentUser, tables, collection, onStartCollection, onStopCo
 
 function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const [cal, setCal] = useState({ y: 2026, m: 9, d: 14 });
+  const [sharedSales, setSharedSales] = useState([]);
+  const [sharedExpenses, setSharedExpenses] = useState([]);
+  const [sharedDataError, setSharedDataError] = useState("");
+  useEffect(() => {
+    let active = true;
+    const loadSharedData = async () => {
+      const [{ data: sales, error: salesError }, { data: expenses, error: expensesError }] = await Promise.all([
+        supabase.from("cafe_sales").select("*").order("created_at", { ascending: false }),
+        supabase.from("cafe_expenses").select("*").order("created_at", { ascending: false })
+      ]);
+      if (!active) return;
+      if (salesError || expensesError) {
+        console.error("Unable to load shared sales and expenses.", { salesError, expensesError });
+        setSharedDataError("Shared sales data could not be loaded. Check Supabase table policies.");
+        return;
+      }
+      setSharedSales((sales || []).map((sale) => ({
+        ...sale,
+        amount: Number(sale.amount || 0),
+        total: Number(sale.amount || 0),
+        paymentMethod: sale.payment_method || "Cash",
+        createdAt: sale.created_at,
+        itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
+      })));
+      setSharedExpenses((expenses || []).map((expense) => ({
+        ...expense,
+        amount: Number(expense.amount || 0),
+        date: expense.expense_date,
+        mode: expense.payment_method,
+        cat: expense.category,
+        reason: expense.reason
+      })));
+    };
+    loadSharedData();
+    const channel = supabase
+      .channel("cafe-shared-review-data")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "cafe_sales" }, ({ new: sale }) => {
+        setSharedSales((current) => current.some((item) => item.id === sale.id) ? current : [{
+          ...sale,
+          amount: Number(sale.amount || 0),
+          total: Number(sale.amount || 0),
+          paymentMethod: sale.payment_method || "Cash",
+          createdAt: sale.created_at,
+          itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
+        }, ...current]);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "cafe_expenses" }, ({ new: expense }) => {
+        setSharedExpenses((current) => current.some((item) => String(item.id) === String(expense.id)) ? current : [{
+          ...expense,
+          amount: Number(expense.amount || 0),
+          date: expense.expense_date,
+          mode: expense.payment_method,
+          cat: expense.category,
+          reason: expense.reason
+        }, ...current]);
+      })
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") console.error("Shared review data subscription failed.");
+      });
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
   const pickMonth = (e) => setCal({ ...cal, m: parseInt(e.target.value), d: 1 });
   const pickDate = (e) => setCal({ ...cal, d: parseInt(e.target.value) });
   const daysInMonth = new Date(cal.y, cal.m + 1, 0).getDate();
@@ -2291,7 +2355,9 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const source = normalSales.find((entry) => entry.id === sale.id);
     return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   };
-  const dailySales = activeSessionSales.filter((sale) => localDateKey(sale.createdAt) === todayKey);
+  const dailySales = [...activeSessionSales, ...sharedSales]
+    .filter((sale, index, sales) => sales.findIndex((candidate) => candidate.id === sale.id) === index)
+    .filter((sale) => localDateKey(sale.createdAt || sale.created_at) === todayKey);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
     + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
   const [expList, setExpList] = useState(() => {
@@ -2310,6 +2376,9 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
       console.error(e);
     }
   }, [expList]);
+  const combinedExpenses = [...expList, ...sharedExpenses].filter((expense, index, expenses) =>
+    expenses.findIndex((candidate) => String(candidate.id) === String(expense.id)) === index
+  );
 
   const getDayExpenses = (m, d) => {
     const isToday = (m === 9 && d === 14) || (m === new Date().getMonth() && d === new Date().getDate());
@@ -2365,6 +2434,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
       if (sale.paymentStatus === "Paid") add(sale);
     });
     salesLedger.forEach((sale) => add(sale));
+    sharedSales.forEach((sale) => add(sale));
     tables.forEach((table) => {
       if (table.paymentStatus === "Paid" && (table.orders || []).length) {
         add({ ...table, amount: calculateBill(table).total, createdAt: table.orders[0]?.createdAt }, `TABLE-${table.sessionId || table.id}`);
@@ -2382,7 +2452,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const sales = recordedSales.filter((sale) => (sale.reportDate || localDateKey(sale.createdAt)) === dateKey);
     const cash = sales.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + sale.amount, 0);
     const gpay = sales.filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + sale.amount, 0);
-    const expenses = expList.filter((expense) => expense.date === dateKey);
+    const expenses = combinedExpenses.filter((expense) => expense.date === dateKey);
     const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
     return { dateKey, sales, total: cash + gpay, cash, gpay, bills: sales.length, items: sales.reduce((sum, sale) => sum + sale.itemCount, 0), expenses: expenseTotal, profit: cash + gpay - expenseTotal };
   };
@@ -2455,12 +2525,29 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const [expReason, setExpReason] = useState("");
   const [expSupplier, setExpSupplier] = useState(VEN0[0]?.[0] || "");
   const [expReference, setExpReference] = useState("");
-  const addExpense = () => {
+  const addExpense = async () => {
     const amt = parseFloat(expAmt);
     if (!amt || amt <= 0) return;
     if (expCat === "Others" && !expReason.trim()) return;
     const entry = { id: Date.now(), cat: expCat, mode: expMode, amount: amt, supplier: expCat === "Supplier" ? expSupplier : "", reference: expReference.trim(), reason: expCat === "Others" ? expReason.trim() : `${expCat}: ${expSupplier}`, date: localDateKey(), time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) };
+    const { error } = await supabase.from("cafe_expenses").insert({
+      id: String(entry.id),
+      expense_date: entry.date,
+      amount: entry.amount,
+      category: entry.cat,
+      payment_method: entry.mode,
+      reason: entry.reason,
+      supplier: entry.supplier || null,
+      reference: entry.reference || null,
+      created_at: new Date().toISOString()
+    });
+    if (error) {
+      console.error("Unable to save shared expense.", error);
+      setSharedDataError("Expense was not saved to Supabase. Please try again.");
+      return;
+    }
     setExpList(prev => [entry, ...prev]);
+    setSharedExpenses((prev) => [{ ...entry }, ...prev]);
     setExpAmt(""); setExpReason(""); setExpReference("");
   };
   const removeExpense = (id) => {
@@ -2553,6 +2640,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
 
   return (
     <>
+      {sharedDataError && <div className="card" style={{ borderColor: "#f59e0b", color: "#92400e", fontWeight: 700 }}>⚠️ {sharedDataError}</div>}
       {!sub && (
         <div className="home">
           <button className="big" onClick={() => go("/review/today")}><i>📈</i>TODAY'S SALES</button>
@@ -3747,7 +3835,7 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
     return undefined;
   }, [autoPrint]);
 
-  const markPaid = () => {
+  const markPaid = async () => {
     const session = (() => {
       try { return JSON.parse(localStorage.getItem("cafe_collection_session") || "null"); }
       catch { return null; }
@@ -3768,8 +3856,26 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
       }
     }
     const saleId = `TABLE-${table.sessionId || table.id}`;
+    const { error: sharedSaleError } = await supabase.from("cafe_sales").insert({
+      id: saleId,
+      sale_date: localDateKey(new Date()),
+      amount: bill.total,
+      payment_method: paymentMethod,
+      items: bill.lines,
+      session_id: session?.sessionId || table.sessionId || null,
+      table_id: table.id,
+      created_at: new Date().toISOString()
+    });
+    if (sharedSaleError && sharedSaleError.code !== "23505") {
+      console.error("Unable to save shared table sale.", sharedSaleError);
+      return;
+    }
     deductInventoryForSale(saleId, bill.lines);
     onUpdateTable(table.id, (current) => ({ ...current, paymentStatus: "Paid", paymentMethod }));
+  };
+  const printBill = () => {
+    if (!hasOrders) return;
+    window.print();
   };
 
   return (
@@ -3822,7 +3928,8 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
             {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          {hasOrders && <button type="button" className="btn-save" onClick={printBill}>🖨️ Print Bill</button>}
           <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
         </div>
       </div>
@@ -3879,7 +3986,7 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
   const selected = products.filter((product) => cart[product.id]);
   const total = selected.reduce((sum, product) => sum + product.price * cart[product.id], 0);
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (saving) return;
     if (!selected.length) {
       setError("Add at least one product to complete the sale.");
@@ -3909,10 +4016,20 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
         : null
     };
     try {
+      const collection = JSON.parse(localStorage.getItem("cafe_collection_session") || "null");
+      const { error: sharedSaleError } = await supabase.from("cafe_sales").insert({
+        id: sale.id,
+        sale_date: localDateKey(sale.createdAt),
+        amount: sale.total,
+        payment_method: sale.paymentMethod,
+        items: sale.items,
+        session_id: collection?.sessionId || null,
+        created_at: sale.createdAt
+      });
+      if (sharedSaleError) throw sharedSaleError;
       const sales = JSON.parse(localStorage.getItem("cafe_normal_sales") || "[]");
       const movements = JSON.parse(localStorage.getItem("cafe_stock_movements") || "[]");
       localStorage.setItem("cafe_normal_sales", JSON.stringify([...sales, sale]));
-      const collection = JSON.parse(localStorage.getItem("cafe_collection_session") || "null");
       if (collection?.active) {
         const ledger = JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]");
         if (!ledger.some((entry) => entry.id === sale.id)) {
@@ -5690,7 +5807,7 @@ export default function App() {
     });
   };
 
-  const stopCollection = (calendarDate = localDateKey()) => {
+  const stopCollection = async (calendarDate = localDateKey()) => {
     if (!collection.active) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(calendarDate)) {
       console.error("A valid calendar date is required before stopping the collection.");
@@ -5703,6 +5820,14 @@ export default function App() {
       .map((sale) => ({ ...sale, reportDate: calendarDate }));
     const updatedLedger = ledger.map((sale) => sale.sessionId === collection.sessionId ? { ...sale, reportDate: calendarDate } : sale);
     localStorage.setItem("cafe_sales_ledger", JSON.stringify(updatedLedger));
+    const { error: sharedDateError } = await supabase
+      .from("cafe_sales")
+      .update({ sale_date: calendarDate })
+      .eq("session_id", collection.sessionId);
+    if (sharedDateError) {
+      console.error("Unable to apply the collection date to shared sales.", sharedDateError);
+      return;
+    }
     const amount = sessionSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
     const orders = sessionSales.length;
     const paymentBreakdown = sessionSales.reduce((result, sale) => {
