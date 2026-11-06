@@ -2390,11 +2390,16 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const source = normalSales.find((entry) => entry.id === sale.id);
     return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   };
-  const dailySales = [...sharedSales, ...normalSales.filter((sale) => sale.paymentStatus === "Paid"), ...salesLedger]
+  const dailySales = sharedSales
     .filter((sale, index, sales) => sales.findIndex((candidate) => candidate.id === sale.id) === index)
     .filter((sale) => (sale.reportDate || sale.sale_date || localDateKey(sale.createdAt || sale.created_at)) === todayKey);
-  const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
-    + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
+  const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0);
+  const dailyHourlySales = Array.from({ length: 14 }, () => 0);
+  dailySales.forEach((sale) => {
+    const hour = new Date(sale.createdAt || sale.created_at).getHours();
+    const index = hour >= 9 && hour <= 22 ? hour - 9 : -1;
+    if (index >= 0) dailyHourlySales[index] += Number(sale.amount || 0);
+  });
   const [expList, setExpList] = useState(() => {
     try {
       const saved = localStorage.getItem("cafe_today_expenses");
@@ -2596,8 +2601,8 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const actualProfit = baseTodaySales - totalExpense;
 
   const todayLedger = [...dailySales, ...currentTableSales];
-  const salesCash = todayLedger.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
-  const salesGPay = todayLedger.filter((sale) => ["gpay", "google pay", "upi"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const salesCash = dailySales.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const salesGPay = dailySales.filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const lifetimeSales = (() => {
     const records = [];
     const knownIds = new Set();
@@ -2664,12 +2669,12 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           </div>
         </div>
         <div className="hl">Hourly Sales</div>
-        <Chart v={hourly("today")} />
+        <Chart v={dailyHourlySales} />
         <div className="inc">
           <span className="ic">💰</span>
           <span>
             <small>Total Income In This Collection</small>
-            <b>{inr(baseTodaySales + currentTableSalesTotal)}</b>
+            <b>{inr(salesCash + salesGPay)}</b>
             <em>{collection?.startedAt ? new Date(collection.startedAt).toLocaleString() : "Collection not started"}</em>
           </span>
         </div>
