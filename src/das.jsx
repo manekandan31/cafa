@@ -2390,9 +2390,9 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const source = normalSales.find((entry) => entry.id === sale.id);
     return (source?.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   };
-  const dailySales = [...activeSessionSales, ...sharedSales]
+  const dailySales = [...sharedSales, ...normalSales.filter((sale) => sale.paymentStatus === "Paid"), ...salesLedger]
     .filter((sale, index, sales) => sales.findIndex((candidate) => candidate.id === sale.id) === index)
-    .filter((sale) => localDateKey(sale.createdAt || sale.created_at) === todayKey);
+    .filter((sale) => (sale.reportDate || sale.sale_date || localDateKey(sale.createdAt || sale.created_at)) === todayKey);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0)
     + currentTableSales.reduce((sum, sale) => sum + sale.itemCount, 0);
   const [expList, setExpList] = useState(() => {
