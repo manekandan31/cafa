@@ -2440,7 +2440,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
         amount,
         paymentMethod: sale.paymentMethod || "Cash",
         createdAt: sale.createdAt || sale.closedAt || new Date().toISOString(),
-        reportDate: sale.reportDate || null,
+        reportDate: sale.reportDate || sale.sale_date || null,
         itemCount: Number(sale.itemCount || (sale.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0))
       });
     };
@@ -2463,7 +2463,10 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   })();
   const reportForDate = (year, month, day) => {
     const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const sales = recordedSales.filter((sale) => (sale.reportDate || localDateKey(sale.createdAt)) === dateKey);
+    const sales = recordedSales.filter((sale) => {
+      const saleDate = sale.reportDate || sale.sale_date || localDateKey(sale.createdAt);
+      return String(saleDate).slice(0, 10) === dateKey;
+    });
     const cash = sales.filter((sale) => (sale.paymentMethod || "Cash").toLowerCase() === "cash").reduce((sum, sale) => sum + sale.amount, 0);
     const gpay = sales.filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + sale.amount, 0);
     const expenses = combinedExpenses.filter((expense) => expense.date === dateKey);
@@ -2525,8 +2528,9 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     pdf.setFontSize(16);
     pdf.text("Espresso & Co. Cafe", 14, 18);
     pdf.setFontSize(11);
-    reportRows(report, title).slice(1).forEach((row, index) => pdf.text(`${row[0]}: ${typeof row[1] === "number" ? inr(row[1]) : row[1]}`, 14, 30 + index * 8));
-    if (monthly) report.days.forEach((day, index) => pdf.text(`${day.dateKey}: ${inr(day.total)} (${day.bills} bills)`, 110, 30 + index * 8));
+    const pdfInr = (value) => `Rs. ${Number(value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    reportRows(report, title).slice(1).forEach((row, index) => pdf.text(`${row[0]}: ${typeof row[1] === "number" && !["Total Bills", "Items Sold"].includes(row[0]) ? pdfInr(row[1]) : row[1]}`, 14, 30 + index * 8));
+    if (monthly) report.days.forEach((day, index) => pdf.text(`${day.dateKey}: ${pdfInr(day.total)} (${day.bills} bills)`, 110, 30 + index * 8));
     if (format === "view") window.open(pdf.output("bloburl"), "_blank", "noopener,noreferrer");
     else pdf.save(`${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`);
   };
