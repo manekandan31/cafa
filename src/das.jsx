@@ -2501,7 +2501,18 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     const gpay = sales.filter((sale) => ["gpay", "google pay", "upi", "online"].includes((sale.paymentMethod || "").toLowerCase())).reduce((sum, sale) => sum + sale.amount, 0);
     const expenses = combinedExpenses.filter((expense) => expense.date === dateKey);
     const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-    return { dateKey, sales, total: cash + gpay, cash, gpay, bills: sales.length, items: sales.reduce((sum, sale) => sum + sale.itemCount, 0), expenses: expenseTotal, profit: cash + gpay - expenseTotal };
+    return {
+      dateKey,
+      sales,
+      total: cash + gpay,
+      cash,
+      gpay,
+      bills: sales.length,
+      items: sales.reduce((sum, sale) => sum + sale.itemCount, 0),
+      expenses: expenseTotal,
+      expenseDetails: expenses,
+      profit: cash + gpay - expenseTotal
+    };
   };
   const selectedReport = reportForDate(cal.y, cal.m, cal.d);
   const reportForMonth = (year, month) => {
@@ -2543,6 +2554,17 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const exportReport = (format, report, title, monthly = false) => {
     if (format === "xlsx") {
       const rows = reportRows(report, title);
+      if (!monthly && report.expenseDetails?.length) {
+        rows.push([]);
+        rows.push(["Expense Details"]);
+        rows.push(["Category", "Reason", "Payment Mode", "Amount"]);
+        report.expenseDetails.forEach((expense) => rows.push([
+          expense.cat || expense.category || "Other",
+          expense.reason || "—",
+          expense.mode || expense.payment_method || "Cash",
+          Number(expense.amount || 0)
+        ]));
+      }
       if (monthly) {
         rows.push([]);
         rows.push(["Date", "Sales", "Cash", "GPay / Online", "Bills", "Items", "Expenses", "Profit"]);
@@ -2560,6 +2582,17 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
     pdf.setFontSize(11);
     const pdfInr = (value) => `Rs. ${Number(value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
     reportRows(report, title).slice(1).forEach((row, index) => pdf.text(`${row[0]}: ${typeof row[1] === "number" && !["Total Bills", "Items Sold"].includes(row[0]) ? pdfInr(row[1]) : row[1]}`, 14, 30 + index * 8));
+    let nextY = 30 + reportRows(report, title).length * 8;
+    if (!monthly && report.expenseDetails?.length) {
+      pdf.text("Expense Details:", 14, nextY);
+      nextY += 7;
+      report.expenseDetails.forEach((expense) => {
+        const detail = `${expense.cat || expense.category || "Other"} - ${expense.reason || "—"} - ${expense.mode || expense.payment_method || "Cash"}: ${pdfInr(expense.amount)}`;
+        const lines = pdf.splitTextToSize(detail, 180);
+        pdf.text(lines, 14, nextY);
+        nextY += lines.length * 6;
+      });
+    }
     if (monthly) report.days.forEach((day, index) => pdf.text(`${day.dateKey}: ${pdfInr(day.total)} (${day.bills} bills)`, 110, 30 + index * 8));
     if (format === "view") window.open(pdf.output("bloburl"), "_blank", "noopener,noreferrer");
     else pdf.save(`${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`);
@@ -2603,7 +2636,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   const removeExpense = (id) => {
     setExpList(prev => prev.filter(e => e.id !== id));
   };
-  const todayExpenses = combinedExpenses.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
+  const todayExpenses = expList.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
   const totalExpense = todayExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
   const actualProfit = baseTodaySales - totalExpense;
 
@@ -5812,6 +5845,7 @@ export default function App() {
   const startCollection = () => {
     // Start a new collection even if the previous session is still marked active.
     const now = new Date().toISOString();
+    localStorage.removeItem("cafe_today_expenses");
     const previous = [];
     tables.forEach((table) => {
       const history = Array.isArray(table.sessionHistory) ? table.sessionHistory : [];
