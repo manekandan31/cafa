@@ -229,7 +229,6 @@ const normalizeTables = (saved) => {
 
 const tableLabel = (table, index = 0) => table.displayName || `Table ${pad(index + 1)}`;
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
-const validPhone = (phone) => /^\d{10,15}$/.test(normalizePhone(phone));
 const localDateKey = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
   const year = date.getFullYear();
@@ -251,6 +250,7 @@ const calculateBill = (table) => {
   const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
   return { lines, subtotal, total: subtotal };
 };
+const calculateOrderBill = (order) => calculateBill({ orders: order ? [order] : [] });
 
 const deductInventoryForSale = (saleId, lines) => {
   try {
@@ -730,24 +730,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [lastSubmittedTicket, setLastSubmittedTicket] = useState(null);
   const [customerName, setCustomerName] = useState(currentTable.customer?.name || "");
-  const [customerPhone, setCustomerPhone] = useState(currentTable.customer?.phone || "");
   const [customerError, setCustomerError] = useState("");
-
-  useEffect(() => {
-    setTables((current) => current.map((table) => {
-      if (table.id !== currentTable.id || table.status === "Occupied") return table;
-      return {
-        ...table,
-        status: "Occupied",
-        sessionId: `SES-${Date.now()}-${table.id}`,
-        sessionHistory: table.sessionHistory || [],
-        orders: [],
-        customer: null,
-        guests: table.guests || 2,
-        seatedAt: table.seatedAt === "—" ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : table.seatedAt
-      };
-    }));
-  }, [currentTable.id, setTables, collectionActive]);
 
   const categories = ["All", "Coffees", "Chocolate", "Sandwiches & Toasts", "Salads & Juices", "Soups & Starters", "Pasta & Main Course", "Burgers & Pizzas", "Desserts & Cookies"];
   const filteredMenu = MENU_ITEMS.filter((it) => selectedCat === "All" || it.cat === selectedCat);
@@ -789,17 +772,14 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     return;
   }
 
-  if (!customerName.trim() || !validPhone(customerPhone)) {
-    setCustomerError("Enter a name and a valid phone number (10–15 digits).");
+  if (!customerName.trim()) {
+    setCustomerError("Enter the customer name.");
     return;
   }
 
   if (
     currentTable.customer &&
-    (
-      currentTable.customer.name.trim().toLowerCase() !== customerName.trim().toLowerCase() ||
-      normalizePhone(currentTable.customer.phone) !== normalizePhone(customerPhone)
-    )
+    currentTable.customer.name.trim().toLowerCase() !== customerName.trim().toLowerCase()
   ) {
     setCustomerError(
       "This table session belongs to another customer. Ask staff to close it before starting a new customer session."
@@ -817,7 +797,7 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
   const newTicket = {
     id: ordNo,
     tableId: currentTable.id,
-    tableName: currentTable.name,
+    tableName: currentTable.displayName || currentTable.name || currentTable.id,
     time: timeStr,
     timestamp: Date.now(),
     source: "QR Code",
@@ -830,7 +810,6 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     })),
     specialNotes: specialNotes.trim(),
     customerName: customerName.trim(),
-    customerPhone: normalizePhone(customerPhone),
     status: "new"
   };
 
@@ -838,11 +817,10 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     id: ordNo,
     kotNumber: ordNo,
     tableId: currentTable.id,
-    sessionId: currentTable.sessionId,
+    sessionId: currentTable.sessionId || `SES-${Date.now()}-${currentTable.id}`,
     createdAt: new Date().toISOString(),
     customer: {
-      name: customerName.trim(),
-      phone: normalizePhone(customerPhone)
+      name: customerName.trim()
     },
     items: cartItemsArray.map((item) => ({
       menuId: item.id,
@@ -868,7 +846,6 @@ function CustomerOrderView({ tableId = "T1", go, tables, setTables, kitchenOrder
     status: newTicket.status,
     source: "QR Code",
     customer_name: customerName.trim(),
-customer_phone: normalizePhone(customerPhone),
 collection_id: collectionSessionId,
 created_at: new Date(newTicket.timestamp).toISOString()
   });
@@ -897,9 +874,9 @@ created_at: new Date(newTicket.timestamp).toISOString()
         return {
           ...t,
           status: "Occupied",
+          sessionId: t.sessionId || orderRecord.sessionId,
           customer: {
-            name: customerName.trim(),
-            phone: normalizePhone(customerPhone)
+            name: customerName.trim()
           },
           orders: [...(t.orders || []), orderRecord],
           order: [
@@ -966,7 +943,7 @@ created_at: new Date(newTicket.timestamp).toISOString()
             </h3>
 
             <p style={{ margin: 0, fontSize: 13, color: "var(--mut)", textAlign: "center" }}>
-              Your order <b>#{orderNumber}</b> has been received for <b>{currentTable.name}</b>.
+              Your order has been received for <b>{currentTable.name}</b>.
             </p>
 
             {/* Live Kitchen Status Alert Pill */}
@@ -1017,17 +994,31 @@ created_at: new Date(newTicket.timestamp).toISOString()
             )}
 
             {/* Order Items Receipt Box */}
-            <div className="success-items-list">
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "var(--dk)" }}>Your Order:</div>
-              {cartItemsArray.map((it) => (
-                <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}>
-                  <span>{it.qty}x {it.name}</span>
-                  <b>₹{(it.qty * it.price).toFixed(2)}</b>
+            <div className="success-items-list" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: 14 }}>
+              <div style={{ textAlign: "center", fontWeight: 900, color: "#0b3a78", fontSize: 18 }}>CAFE LOSAKO</div>
+              <div style={{ textAlign: "center", color: "#64748b", fontSize: 12, margin: "4px 0 10px" }}>Table Bill</div>
+              <div style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", padding: "8px 0", fontSize: 12 }}>
+                <div><b>Table:</b> {currentTable.name}</div>
+                <div><b>Customer name:</b> {customerName || "—"}</div>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginTop: 8 }}>
+                <thead><tr><th style={{ textAlign: "left" }}>Item</th><th>Qty</th><th>Unit</th><th style={{ textAlign: "right" }}>Total</th></tr></thead>
+                <tbody>{cartItemsArray.map((it) => (
+                  <tr key={it.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "7px 0" }}>{it.name}</td>
+                    <td style={{ textAlign: "center" }}>{it.qty}</td>
+                    <td style={{ textAlign: "center" }}>₹{it.price.toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>₹{(it.qty * it.price).toFixed(2)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              <div style={{ marginTop: 10, borderTop: "1px solid #cbd5e1", paddingTop: 8, fontSize: 13 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><b>₹{cartGrandTotal.toFixed(2)}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}><span>GST</span><b>₹0.00</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800, marginTop: 6, color: "#0d8a2f" }}>
+                  <span>Grand Total</span>
+                  <span>₹{cartGrandTotal.toFixed(2)}</span>
                 </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 800, marginTop: 8, borderTop: "1px dashed #cbd5e1", paddingTop: 6, color: "#0d8a2f" }}>
-                <span>Total Added to {currentTable.name} Bill:</span>
-                <span>₹{cartGrandTotal.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1148,13 +1139,6 @@ created_at: new Date(newTicket.timestamp).toISOString()
                     placeholder="Customer name (required)"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
-                  />
-                  <input
-                    placeholder="Phone number (required)"
-                    inputMode="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13 }}
                   />
                 </div>
@@ -3911,11 +3895,16 @@ const INITIAL_KITCHEN_MESSAGES = [
   }
 ];
 
-function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, autoPrint = false, collectionActive }) {
-  const bill = calculateBill(table);
-  const hasOrders = (table.orders || []).length > 0 && bill.lines.length > 0;
-  const billDate = table.orders?.map((order) => order.createdAt).filter(Boolean).sort()[0];
-  const [paymentMethod, setPaymentMethod] = useState(table.paymentMethod || "Cash");
+function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree, onEdit, onAddKitchenOrder, autoPrint = false, collectionActive }) {
+  const [selectedOrderId, setSelectedOrderId] = useState(orderId || table.orders?.[0]?.id || null);
+  const selectedOrder = (table.orders || []).find((order) => order.id === selectedOrderId) || table.orders?.[0];
+  const bill = calculateOrderBill(selectedOrder);
+  const hasOrders = Boolean(selectedOrder) && bill.lines.length > 0;
+  const [paymentMethod, setPaymentMethod] = useState(selectedOrder?.paymentMethod || "Cash");
+
+  useEffect(() => {
+    setPaymentMethod(selectedOrder?.paymentMethod || "Cash");
+  }, [selectedOrderId, selectedOrder?.paymentMethod]);
 
   useEffect(() => {
     if (autoPrint) {
@@ -3926,6 +3915,7 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
   }, [autoPrint]);
 
   const markPaid = async () => {
+    if (!selectedOrder || selectedOrder.paymentStatus === "Paid") return;
     const session = (() => {
       try { return JSON.parse(localStorage.getItem("cafe_collection_session") || "null"); }
       catch { return null; }
@@ -3935,17 +3925,17 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
         try { return JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); }
         catch { return []; }
       })();
-      const saleId = `TABLE-${table.sessionId || table.id}`;
+      const saleId = `TABLE-${table.sessionId || table.id}-${selectedOrder.id}`;
       if (!ledger.some((sale) => sale.id === saleId)) {
         const total = Number(bill.total || 0);
         localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
           id: saleId, sessionId: session.sessionId, source: "Table", sourceId: saleId,
           tableId: table.id, amount: total, itemCount: bill.lines.reduce((sum, item) => sum + Number(item.qty || 0), 0),
-          paymentMethod, createdAt: new Date().toISOString()
+          paymentMethod, paidAt: new Date().toISOString(), createdAt: new Date().toISOString()
         }]));
       }
     }
-    const saleId = `TABLE-${table.sessionId || table.id}`;
+    const saleId = `TABLE-${table.sessionId || table.id}-${selectedOrder.id}`;
     const { error: sharedSaleError } = await supabase.from("cafe_sales").insert({
       id: saleId,
       sale_date: localDateKey(new Date()),
@@ -3958,10 +3948,24 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
     });
     if (sharedSaleError && sharedSaleError.code !== "23505") {
       console.error("Unable to save shared table sale.", sharedSaleError);
+      window.alert(`Payment could not be saved: ${sharedSaleError.message}`);
       return;
     }
     deductInventoryForSale(saleId, bill.lines);
-    onUpdateTable(table.id, (current) => ({ ...current, paymentStatus: "Paid", paymentMethod }));
+    onUpdateTable(table.id, (current) => {
+      const orders = (current.orders || []).map((order) => order.id === selectedOrder.id
+        ? { ...order, paymentStatus: "Paid", paymentMethod, paidAt: new Date().toISOString() }
+        : order);
+      const allPaid = orders.length > 0 && orders.every((order) => order.paymentStatus === "Paid");
+      return {
+        ...current,
+        orders,
+        paymentStatus: allPaid ? "Paid" : "Unpaid",
+        paymentMethod: allPaid ? paymentMethod : current.paymentMethod,
+        billNumber: current.billNumber || `BILL-${table.sessionId || table.id}`,
+        paidAt: allPaid ? new Date().toISOString() : current.paidAt
+      };
+    });
   };
   const printBill = () => {
     if (!hasOrders) return;
@@ -3979,12 +3983,25 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
           <button type="button" onClick={onClose} className="sheet-close">✕</button>
         </div>
         <div style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", margin: "14px 0", padding: "10px 0", fontSize: 12, display: "grid", gap: 4 }}>
-          <div><b>Bill No:</b> {hasOrders ? `BILL-${table.sessionId || table.id}` : "—"}</div>
           <div><b>Table:</b> {tableLabel(table, index)}</div>
           <div><b>Customer name:</b> {table.customer?.name || table.orders?.find((order) => order.customer?.name)?.customer?.name || "—"}</div>
-          <div><b>Phone number:</b> {table.customer?.phone || table.orders?.find((order) => order.customer?.phone)?.customer?.phone || "—"}</div>
-          <div><b>Bill date:</b> {billDate ? new Date(billDate).toLocaleString() : "—"}</div>
+          <div><b>Bill:</b> {selectedOrder ? `Bill ${(table.orders || []).findIndex((order) => order.id === selectedOrder.id) + 1}` : "—"}</div>
         </div>
+
+        {(table.orders || []).length > 1 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {(table.orders || []).map((order, orderIndex) => (
+              <button
+                key={order.id}
+                type="button"
+                className={order.id === selectedOrder?.id ? "btn-save" : "btn-cancel"}
+                onClick={() => setSelectedOrderId(order.id)}
+              >
+                Bill {orderIndex + 1}
+              </button>
+            ))}
+          </div>
+        )}
 
         {!hasOrders && (
           <div style={{ padding: "22px 10px", textAlign: "center", color: "#64748b", fontWeight: 700 }}>
@@ -4003,8 +4020,10 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
           ))}</tbody>
         </table>}
         {hasOrders && <div style={{ marginTop: 12, borderTop: "1px solid #cbd5e1", paddingTop: 8, display: "grid", gap: 5, fontSize: 13 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Item Amount</b><b>₹{bill.total.toFixed(2)}</b></div>
-          <div><b>Payment status:</b> {table.paymentStatus || "Unpaid"} {table.paymentStatus === "Paid" ? `(${table.paymentMethod})` : ""}</div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><b>₹{bill.subtotal.toFixed(2)}</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>GST</span><b>₹0.00</b></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Grand Total</b><b>₹{bill.total.toFixed(2)}</b></div>
+          <div><b>Payment status:</b> {selectedOrder?.paymentStatus || "Unpaid"} {selectedOrder?.paymentStatus === "Paid" ? `(${selectedOrder.paymentMethod})` : ""}</div>
         </div>}
 
         {table.status === "Occupied" && hasOrders && (
@@ -4012,14 +4031,16 @@ function BillPreview({ table, index, onClose, onUpdateTable, onAddKitchenOrder, 
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
               Payment method
               <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                <option>Cash</option><option>Card</option><option>GPay</option>
+                <option>Cash</option><option>GPay</option><option>Card</option>
               </select>
             </label>
-            {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
+            {selectedOrder?.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          {hasOrders && <button type="button" className="btn-cancel" onClick={() => onEdit(selectedOrder?.id)}>✏️ Edit</button>}
           {hasOrders && <button type="button" className="btn-save" onClick={printBill}>🖨️ Print Bill</button>}
+          {hasOrders && table.paymentStatus === "Paid" && <button type="button" className="btn-save" onClick={onMarkFree}>✅ Mark as Free</button>}
           <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
         </div>
       </div>
@@ -4186,6 +4207,7 @@ function NormalSaleModal({ onClose, onCompleted, collectionActive }) {
 
 function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, collectionActive, archivedBills = [] }) {
   const [billTableId, setBillTableId] = useState(null);
+  const [billOrderId, setBillOrderId] = useState(null);
   const [archivedBill, setArchivedBill] = useState(null);
   const [autoPrintId, setAutoPrintId] = useState(null);
   const [showNormalSale, setShowNormalSale] = useState(false);
@@ -4341,17 +4363,34 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                 <b style={{ color: occupied ? "#b91c1c" : "#15803d", fontSize: 13 }}>● {occupied ? "Occupied" : "Free"}</b>
               </div>
               <div style={{ display: "flex", justifyContent: "center" }}><QRCode value={orderUrl} size={150} /></div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", borderRadius: 8, padding: "8px 10px", fontSize: 12 }}>
+                <span>🧾 Ordered items</span>
+                <b>{(table.orders || []).reduce((sum, order) => sum + (order.items || []).reduce((count, item) => count + Number(item.qty || 0), 0), 0)} · ₹{calculateBill(table).total.toFixed(2)}</b>
+              </div>
+              <button
+                type="button"
+                className="btn-save"
+                onClick={() => { window.location.hash = `/order/${encodeURIComponent(table.id)}`; }}
+                style={{ width: "100%", minHeight: 42, fontWeight: 800, fontSize: 15, background: occupied ? "#b45309" : "#15803d", color: "#ffffff", border: "2px solid transparent", borderRadius: 8 }}
+              >
+                {occupied ? "➕ ADD ORDER / MANAGE ORDER" : "➕ ADD ORDER"}
+              </button>
               {(table.orders || []).length > 0 && (
-                <button
-                  type="button"
-                  className="btn-save"
-                  onClick={() => setBillTableId(table.id)}
-                  style={{ width: "100%", minHeight: 42, fontWeight: 800, fontSize: 15, background: "#0b3a78", color: "#ffffff", border: "2px solid #0b3a78", borderRadius: 8, letterSpacing: 0.2 }}
-                >
-                  👁️ VIEW BILL
-                </button>
+                <div style={{ display: "grid", gap: 6 }}>
+                  {(table.orders || []).map((order, orderIndex) => (
+                    <button
+                      key={order.id}
+                      type="button"
+                      className="btn-save"
+                      onClick={() => { setBillTableId(table.id); setBillOrderId(order.id); }}
+                      style={{ width: "100%", minHeight: 38, fontWeight: 800, fontSize: 14, background: "#0b3a78", color: "#ffffff", border: "2px solid #0b3a78", borderRadius: 8, letterSpacing: 0.2 }}
+                    >
+                      👁️ VIEW BILL {orderIndex + 1}
+                    </button>
+                  ))}
+                </div>
               )}
-              <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || currentUser?.role !== "admin"}>Mark as Read</button>
+              <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || table.paymentStatus !== "Paid"}>Mark as Free</button>
             </article>
           );
         })}
@@ -4362,6 +4401,8 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
           index={0}
           onClose={() => setArchivedBill(null)}
           onUpdateTable={() => {}}
+          onMarkFree={() => setArchivedBill(null)}
+          onEdit={() => {}}
           onAddKitchenOrder={onAddKitchenOrder}
           collectionActive={false}
         />
@@ -4370,8 +4411,18 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
         <BillPreview
           table={tables.find((table) => table.id === billTableId)}
           index={tables.findIndex((table) => table.id === billTableId)}
-          onClose={() => setBillTableId(null)}
+          orderId={billOrderId}
+          onClose={() => { setBillTableId(null); setBillOrderId(null); }}
           onUpdateTable={updateTable}
+          onMarkFree={() => {
+            const currentTable = tables.find((table) => table.id === billTableId);
+            if (currentTable) closeTable(currentTable, tables.findIndex((table) => table.id === billTableId));
+          }}
+          onEdit={() => {
+            setBillTableId(null);
+            setBillOrderId(null);
+            window.location.hash = `/order/${encodeURIComponent(billTableId)}`;
+          }}
           onAddKitchenOrder={onAddKitchenOrder}
           autoPrint={autoPrintId === billTableId}
           collectionActive={collectionActive}

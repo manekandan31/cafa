@@ -10,8 +10,41 @@ create table if not exists public.cafe_sales (
   created_at timestamptz not null default now()
 );
 
+alter table public.cafe_sales add column if not exists bill_number text;
+alter table public.cafe_sales add column if not exists paid_at timestamptz;
+
 create index if not exists cafe_sales_sale_date_idx
   on public.cafe_sales (sale_date);
+
+create table if not exists public.cafe_kitchen_orders (
+  id text primary key,
+  kot_number text not null,
+  table_id text not null,
+  table_name text not null,
+  items jsonb not null default '[]'::jsonb,
+  special_notes text,
+  status text not null default 'new',
+  source text not null default 'QR Code',
+  customer_name text,
+  customer_phone text,
+  collection_id text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists cafe_kitchen_orders_table_idx
+  on public.cafe_kitchen_orders (table_id, created_at);
+
+alter table public.cafe_kitchen_orders enable row level security;
+drop policy if exists "Cafe members can read kitchen orders" on public.cafe_kitchen_orders;
+create policy "Cafe members can read kitchen orders"
+  on public.cafe_kitchen_orders for select
+  to anon, authenticated
+  using (true);
+drop policy if exists "Cafe members can add kitchen orders" on public.cafe_kitchen_orders;
+create policy "Cafe members can add kitchen orders"
+  on public.cafe_kitchen_orders for insert
+  to anon, authenticated
+  with check (true);
 
 create table if not exists public.cafe_expenses (
   id text primary key,
