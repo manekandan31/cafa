@@ -129,18 +129,8 @@ const VEN0 = [
   ["DairyFresh Milk Co","Pooja Verma","9822334455","pooja@dairyfresh.in","Chennai","Active","Chennai, Tamil Nadu","33 Guindy Ind Estate, Chennai","Toned, Almond & Oat Milk","7 Days","Daily morning chilled dispatch."]
 ];
 
-const STK0 = MENU_ITEMS.map((item, index) => [
-  item.name,
-  item.cat,
-  `SKU-${String(index + 1).padStart(3, "0")}`,
-  50,
-  item.price,
-  "",
-  10,
-  "Cafe Main Store",
-  "Menu imported from Café Losako menu"
-]);
-const MENU_VERSION = "cafe-losako-menu-v1";
+const STK0 = [];
+const MENU_VERSION = "cafe-losako-menu-v2";
 const VENDOR_STORAGE_KEY = "cafe_vendors";
 const ADMIN_AUTH_VERSION = "admin-auth-v2";
 const ADMIN_USERNAME = "cafe losako";
@@ -3168,7 +3158,7 @@ function Glossary({ go, sub, currentUser }) {
     try {
       if (localStorage.getItem("cafe_menu_version") !== MENU_VERSION) return STK0;
       const saved = JSON.parse(localStorage.getItem("cafe_normal_inventory") || "null");
-      return Array.isArray(saved) && saved.length
+      return Array.isArray(saved)
         ? saved.map((item) => [item.name, item.category, item.id, item.stock, item.price, "", "", "", ""])
         : STK0;
     } catch (error) {
