@@ -2280,6 +2280,9 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
           itemCount: Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) : 0
         } : item));
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "cafe_sales" }, ({ old: sale }) => {
+        setSharedSales((current) => current.filter((item) => item.id !== sale.id));
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "cafe_expenses" }, ({ new: expense }) => {
         setSharedExpenses((current) => current.some((item) => String(item.id) === String(expense.id)) ? current : [{
           ...expense,
@@ -2379,8 +2382,10 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
   };
   const dailySales = sharedSales
     .filter((sale, index, sales) => sales.findIndex((candidate) => candidate.id === sale.id) === index)
-    .filter((sale) => collection?.active && sale.sessionId === collection.sessionId)
     .filter((sale) => (sale.reportDate || sale.sale_date || localDateKey(sale.createdAt || sale.created_at)) === todayKey);
+  const dailySupabaseExpenses = sharedExpenses.filter((expense) => String(expense.date || "").slice(0, 10) === todayKey);
+  const dailyProfit = dailySales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0)
+    - dailySupabaseExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const dailyItemCount = dailySales.reduce((sum, sale) => sum + saleItemCount(sale), 0);
   const dailyHourlySales = Array.from({ length: 14 }, () => 0);
   dailySales.forEach((sale) => {
@@ -2793,7 +2798,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
             {/* Cash & GPay Settlement Breakdown Card in the empty space */}
             <div className="card" style={{ borderColor: "#c5d6ea" }}>
               <div className="ch" style={{ background: "linear-gradient(#1e3a5f, #0d233e)" }}>
-                💳 Cash & GPay Settlement Breakdown
+                💳 Daily Profit Breakdown
               </div>
               <div className="cb">
                 <div className="pe-cash-grid">
@@ -2805,7 +2810,7 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Total Cash:</span>
+                        <span>Cash Sales:</span>
                         <b style={{ color: "#15803d" }}>+{inr(salesCash)}</b>
                       </div>
                     </div>
@@ -2819,15 +2824,15 @@ function Review({ go, sub, collectionActive, collection, tables = [] }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "#374151" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span>Total GPay / Online:</span>
+                        <span>GPay / Online Sales:</span>
                         <b style={{ color: "#7e22ce" }}>+{inr(salesGPay)}</b>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
-                  <span style={{ color: "#475569", fontWeight: 700 }}>Total Collection:</span>
-                  <b style={{ fontSize: 15, color: "#0d8a2f", fontWeight: 800 }}>{inr(salesCash + salesGPay)}</b>
+                  <span style={{ color: "#475569", fontWeight: 700 }}>Total Daily Profit:</span>
+                  <b style={{ fontSize: 15, color: dailyProfit >= 0 ? "#0d8a2f" : "#c4161c", fontWeight: 800 }}>{inr(dailyProfit)}</b>
                 </div>
               </div>
             </div>
@@ -3896,15 +3901,14 @@ const INITIAL_KITCHEN_MESSAGES = [
 ];
 
 function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree, onEdit, onAddKitchenOrder, autoPrint = false, collectionActive }) {
-  const [selectedOrderId, setSelectedOrderId] = useState(orderId || table.orders?.[0]?.id || null);
-  const selectedOrder = (table.orders || []).find((order) => order.id === selectedOrderId) || table.orders?.[0];
-  const bill = calculateOrderBill(selectedOrder);
-  const hasOrders = Boolean(selectedOrder) && bill.lines.length > 0;
-  const [paymentMethod, setPaymentMethod] = useState(selectedOrder?.paymentMethod || "Cash");
-
-  useEffect(() => {
-    setPaymentMethod(selectedOrder?.paymentMethod || "Cash");
-  }, [selectedOrderId, selectedOrder?.paymentMethod]);
+  const orders = table.orders || [];
+  const latestOrder = orders[orders.length - 1];
+  const bill = calculateBill(table);
+  const latestOrderBill = calculateOrderBill(latestOrder);
+  const hasOrders = bill.lines.length > 0;
+  const [paymentMethod, setPaymentMethod] = useState(table.paymentMethod || "Cash");
+  const [printingLatestOrder, setPrintingLatestOrder] = useState(false);
+  const [hasPrinted, setHasPrinted] = useState(false);
 
   useEffect(() => {
     if (autoPrint) {
@@ -3915,7 +3919,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
   }, [autoPrint]);
 
   const markPaid = async () => {
-    if (!selectedOrder || selectedOrder.paymentStatus === "Paid") return;
+    if (table.paymentStatus === "Paid") return;
     const session = (() => {
       try { return JSON.parse(localStorage.getItem("cafe_collection_session") || "null"); }
       catch { return null; }
@@ -3925,7 +3929,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
         try { return JSON.parse(localStorage.getItem("cafe_sales_ledger") || "[]"); }
         catch { return []; }
       })();
-      const saleId = `TABLE-${table.sessionId || table.id}-${selectedOrder.id}`;
+      const saleId = `TABLE-${table.sessionId || table.id}`;
       if (!ledger.some((sale) => sale.id === saleId)) {
         const total = Number(bill.total || 0);
         localStorage.setItem("cafe_sales_ledger", JSON.stringify([...ledger, {
@@ -3935,7 +3939,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
         }]));
       }
     }
-    const saleId = `TABLE-${table.sessionId || table.id}-${selectedOrder.id}`;
+    const saleId = `TABLE-${table.sessionId || table.id}`;
     const { error: sharedSaleError } = await supabase.from("cafe_sales").insert({
       id: saleId,
       sale_date: localDateKey(new Date()),
@@ -3952,25 +3956,24 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
       return;
     }
     deductInventoryForSale(saleId, bill.lines);
-    onUpdateTable(table.id, (current) => {
-      const orders = (current.orders || []).map((order) => order.id === selectedOrder.id
-        ? { ...order, paymentStatus: "Paid", paymentMethod, paidAt: new Date().toISOString() }
-        : order);
-      const allPaid = orders.length > 0 && orders.every((order) => order.paymentStatus === "Paid");
-      return {
-        ...current,
-        orders,
-        paymentStatus: allPaid ? "Paid" : "Unpaid",
-        paymentMethod: allPaid ? paymentMethod : current.paymentMethod,
-        billNumber: current.billNumber || `BILL-${table.sessionId || table.id}`,
-        paidAt: allPaid ? new Date().toISOString() : current.paidAt
-      };
-    });
+    onUpdateTable(table.id, (current) => ({
+      ...current,
+      paymentStatus: "Paid",
+      paymentMethod,
+      billNumber: current.billNumber || `BILL-${table.sessionId || table.id}`,
+      paidAt: new Date().toISOString()
+    }));
   };
   const printBill = () => {
     if (!hasOrders) return;
-    window.print();
+    setHasPrinted(true);
+    setPrintingLatestOrder(true);
+    setTimeout(() => {
+      window.print();
+      setPrintingLatestOrder(false);
+    }, 50);
   };
+  const visibleBill = printingLatestOrder ? latestOrderBill : bill;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -3985,23 +3988,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
         <div style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", margin: "14px 0", padding: "10px 0", fontSize: 12, display: "grid", gap: 4 }}>
           <div><b>Table:</b> {tableLabel(table, index)}</div>
           <div><b>Customer name:</b> {table.customer?.name || table.orders?.find((order) => order.customer?.name)?.customer?.name || "—"}</div>
-          <div><b>Bill:</b> {selectedOrder ? `Bill ${(table.orders || []).findIndex((order) => order.id === selectedOrder.id) + 1}` : "—"}</div>
         </div>
-
-        {(table.orders || []).length > 1 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {(table.orders || []).map((order, orderIndex) => (
-              <button
-                key={order.id}
-                type="button"
-                className={order.id === selectedOrder?.id ? "btn-save" : "btn-cancel"}
-                onClick={() => setSelectedOrderId(order.id)}
-              >
-                Bill {orderIndex + 1}
-              </button>
-            ))}
-          </div>
-        )}
 
         {!hasOrders && (
           <div style={{ padding: "22px 10px", textAlign: "center", color: "#64748b", fontWeight: 700 }}>
@@ -4011,7 +3998,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
 
         {hasOrders && <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr><th style={{ textAlign: "left" }}>Item</th><th>Qty</th><th>Unit</th><th style={{ textAlign: "right" }}>Total</th></tr></thead>
-          <tbody>{bill.lines.map((item) => (
+          <tbody>{visibleBill.lines.map((item) => (
             <tr key={item.menuId || item.name} style={{ borderTop: "1px solid #e2e8f0" }}>
               <td style={{ padding: "7px 0" }}>{item.name}</td>
               <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{item.qty}</td>
@@ -4023,7 +4010,7 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><b>₹{bill.subtotal.toFixed(2)}</b></div>
           <div style={{ display: "flex", justifyContent: "space-between" }}><span>GST</span><b>₹0.00</b></div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#15803d" }}><b>Grand Total</b><b>₹{bill.total.toFixed(2)}</b></div>
-          <div><b>Payment status:</b> {selectedOrder?.paymentStatus || "Unpaid"} {selectedOrder?.paymentStatus === "Paid" ? `(${selectedOrder.paymentMethod})` : ""}</div>
+          <div><b>Payment status:</b> {table.paymentStatus || "Unpaid"} {table.paymentStatus === "Paid" ? `(${table.paymentMethod})` : ""}</div>
         </div>}
 
         {table.status === "Occupied" && hasOrders && (
@@ -4034,12 +4021,12 @@ function BillPreview({ table, index, orderId, onClose, onUpdateTable, onMarkFree
                 <option>Cash</option><option>GPay</option><option>Card</option>
               </select>
             </label>
-            {selectedOrder?.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
+            {table.paymentStatus !== "Paid" && <button type="button" className="btn-save" onClick={markPaid}>Mark as Paid</button>}
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          {hasOrders && <button type="button" className="btn-cancel" onClick={() => onEdit(selectedOrder?.id)}>✏️ Edit</button>}
-          {hasOrders && <button type="button" className="btn-save" onClick={printBill}>🖨️ Print Bill</button>}
+          {hasOrders && <button type="button" className="btn-cancel" onClick={() => onEdit()}>✏️ Edit</button>}
+          {hasOrders && <button type="button" className="btn-save" onClick={printBill} style={{ background: hasPrinted ? "#15803d" : undefined, borderColor: hasPrinted ? "#15803d" : undefined }}>🖨️ {hasPrinted ? "Printed" : "Print Bill"}</button>}
           {hasOrders && table.paymentStatus === "Paid" && <button type="button" className="btn-save" onClick={onMarkFree}>✅ Mark as Free</button>}
           <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
         </div>
@@ -4376,19 +4363,14 @@ function TableManagement({ tables, setTables, currentUser, onAddKitchenOrder, co
                 ➕ ADD ORDER
               </button>
               {(table.orders || []).length > 0 && (
-                <div style={{ display: "grid", gap: 6 }}>
-                  {(table.orders || []).map((order, orderIndex) => (
-                    <button
-                      key={order.id}
-                      type="button"
-                      className="btn-save"
-                      onClick={() => { setBillTableId(table.id); setBillOrderId(order.id); }}
-                      style={{ width: "100%", minHeight: 38, fontWeight: 800, fontSize: 14, background: "#0b3a78", color: "#ffffff", border: "2px solid #0b3a78", borderRadius: 8, letterSpacing: 0.2 }}
-                    >
-                      👁️ VIEW BILL {orderIndex + 1}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className="btn-save"
+                  onClick={() => { setBillTableId(table.id); setBillOrderId(null); }}
+                  style={{ width: "100%", minHeight: 38, fontWeight: 800, fontSize: 14, background: "#0b3a78", color: "#ffffff", border: "2px solid #0b3a78", borderRadius: 8, letterSpacing: 0.2 }}
+                >
+                  👁️ VIEW BILL
+                </button>
               )}
               <button type="button" className="btn-cancel" onClick={() => closeTable(table, index)} disabled={!occupied || table.paymentStatus !== "Paid"}>Mark as Free</button>
             </article>
